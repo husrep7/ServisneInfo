@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="88px" height="88px" viewBox="0 0 88 88" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>5386627B-226A-4224-A3E8-4CABC27B21D6</title>
+    <g id="News-App-Designs" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="signal-app-icons-and-image-sheet" transform="translate(-431.000000, -457.000000)">
+            <g id="weather-big-icon" transform="translate(431.000000, 457.000000)">
+                <rect id="Rectangle" x="0" y="0" width="88" height="88"></rect>
+                <g id="Group" transform="translate(8.000000, 5.000000)">
+                    <line x1="0" y1="25.3394643" x2="7.50832958" y2="25.3394643" id="Path" stroke="#F9A41B" stroke-width="2.9390403" stroke-linecap="round" stroke-linejoin="round"></line>
+                    <line x1="25.3945713" y1="7.39811557" x2="25.3945713" y2="0" id="Path" stroke="#F9A41B" stroke-width="2.9390403" stroke-linecap="round" stroke-linejoin="round"></line>
+                    <line x1="7.36711788" y1="7.32750972" x2="12.6453358" y2="12.6057277" id="Path" stroke="#F9A41B" stroke-width="2.9390403" stroke-linecap="round" stroke-linejoin="round"></line>
+                    <line x1="7.32750972" y1="42.804367" x2="12.5506206" y2="37.5812561" id="Path" stroke="#F9A41B" stroke-width="2.9390403" stroke-linecap="round" stroke-linejoin="round"></line>
+                    <line x1="37.5640351" y1="12.6453358" x2="42.8439752" y2="7.36711788" id="Path" stroke="#F9A41B" stroke-width="2.9390403" stroke-linecap="round" stroke-linejoin="round"></line>
+                    <path d="M35.0652768,21.4727894 C33.2798693,16.5913975 28.2100903,13.73285 23.1092718,14.7315075 C18.0084533,15.730165 14.3909822,20.2895352 14.5782289,25.483821 C14.7654755,30.6781068 18.701848,34.9651716 23.8613337,35.5939597 C24.779969,29.2124989 29.0598152,23.8182876 35.0652768,21.4727894 L35.0652768,21.4727894 Z" id="Path" fill="#F9A41B"></path>
+                    <path d="M57.4834958,34.730654 L57.2527352,34.730654 C54.8172425,27.5114517 47.5118149,23.1182584 39.9933359,24.3515385 C32.4748569,25.5848186 26.9557564,32.0816603 26.9542144,39.7006171 C26.9542144,40.0312592 26.966269,40.3601791 26.9869342,40.687377 C21.699606,42.1547713 18.3098393,47.3032202 19.0513842,52.7400572 C19.7929291,58.1768942 24.4376522,62.2294973 29.9248264,62.2273289 L30.1297556,62.2273289 L36.5686648,35.9292314 L54.3837267,35.9292314 L48.9918505,49.7421469 L60.9070185,49.7421469 L51.2632924,62.2273289 L57.4834958,62.2273289 C65.0665964,62.2046324 71.2082761,56.0629527 71.2309717,48.4798521 L71.2309717,48.4798521 C71.2092213,40.8960789 65.0672661,34.7533544 57.4834958,34.730654 Z" id="Path" fill="#007AFF"></path>
+                    <polygon id="Path" fill="#007AFF" points="44.4782423 52.7041485 49.9975534 38.6380852 39.3343477 38.6380852 33.5343353 62.2617699 41.5506826 62.2617699 35.0170582 78.139476 54.8176943 52.7041485"></polygon>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

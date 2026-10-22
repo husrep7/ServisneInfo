@@ -1,0 +1,28 @@
+  @media (min-width: 1024px) { 
+    body.main-home {
+      max-width: 768px;
+      margin: 0 auto;}
+    
+    }
+.app-page .banner-carousel .flickity-slider{    
+  transform: translate(50%, -10%) !important;
+}
+.banner-carousel .flickity-slider{    
+  transform: translate(50%, 0%) !important;
+}
+.app-area .banner-carousel .flickity-viewport{
+  height: 440px !important;
+  cursor: pointer !important;
+}
+.modal-header .close {
+  padding: 1rem;
+  margin: 1rem 0rem 1rem auto;
+}
+
+}
+
+ @media (max-width: 480px){
+
+
+
+ }

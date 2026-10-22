@@ -1,0 +1,11 @@
+{
+  "name": "komunalni-info",
+  "private": true,
+  "workspaces": ["apps/backend", "apps/mobile"],
+  "scripts": {
+    "backend": "npm run dev --workspace=apps/backend",
+    "mobile": "npm run start --workspace=apps/mobile",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down"
+  }
+}

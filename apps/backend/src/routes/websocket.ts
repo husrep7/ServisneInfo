@@ -1,0 +1,41 @@
+import { FastifyInstance } from "fastify";
+import { Redis } from "ioredis";
+import { config } from "../config";
+
+// All connected WebSocket clients
+const clients = new Set<{ send: (data: string) => void }>();
+
+// Redis subscriber receives "incident:new" and "incident:resolved" events
+// published by the scraper pipeline and broadcasts to all WS clients.
+export async function websocketRoutes(app: FastifyInstance) {
+  const sub = new Redis(config.redisUrl);
+
+  await sub.subscribe("incidents");
+
+  sub.on("message", (_, message) => {
+    for (const client of clients) {
+      try {
+        client.send(message);
+      } catch {
+        clients.delete(client);
+      }
+    }
+  });
+
+  app.get("/ws", { websocket: true }, (socket) => {
+    clients.add(socket);
+    socket.send(JSON.stringify({ type: "connected", clientCount: clients.size }));
+
+    socket.on("close", () => clients.delete(socket));
+  });
+}
+
+// Call this from scrapers after inserting a new incident to broadcast to live clients
+export async function publishIncidentEvent(
+  event: "new" | "resolved",
+  incidentId: string
+) {
+  const pub = new Redis(config.redisUrl);
+  await pub.publish("incidents", JSON.stringify({ type: `incident:${event}`, incidentId }));
+  await pub.quit();
+}
