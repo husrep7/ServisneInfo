@@ -63,7 +63,7 @@ export async function fetchHtml(url: string): Promise<cheerio.CheerioAPI> {
   return cheerio.load(res.data);
 }
 
-function dedupKey(source: string, item: ParsedItem): string {
+export function dedupKey(source: string, item: ParsedItem): string {
   return createHash('sha256')
     .update(`${source}|${item.title}|${safeIso(item.startsAt) ?? ''}`)
     .digest('hex');

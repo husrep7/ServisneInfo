@@ -71,7 +71,7 @@ export default function Report() {
             Prijavi još jedan incident
           </button>
           <button onClick={() => navigate('/')} style={{
-            background: '#F0F0F0', color: '#323B54', border: 'none', borderRadius: 12,
+            background: 'var(--border)', color: 'var(--text)', border: 'none', borderRadius: 12,
             padding: '14px 32px', fontSize: 15, fontWeight: 700, cursor: 'pointer', width: '100%',
           }}>
             Idi na početnu
@@ -87,7 +87,7 @@ export default function Report() {
     <div className="page">
       {/* Header */}
       <div className="s-header" style={{ paddingBottom: 20 }}>
-        <button onClick={() => navigate(-1)} style={{
+        <button onClick={() => navigate(-1)} aria-label="Nazad" style={{
           color: '#fff', background: 'none', border: 'none', fontSize: 22, cursor: 'pointer',
           marginRight: 12, opacity: .8, padding: '4px 8px 4px 0',
         }}>‹</button>
@@ -105,10 +105,10 @@ export default function Report() {
           </label>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
             {TYPES.map(t => (
-              <button type="button" key={t.value} onClick={() => setForm(f => ({ ...f, type: t.value }))}
+              <button type="button" key={t.value} aria-pressed={form.type === t.value} onClick={() => setForm(f => ({ ...f, type: t.value }))}
                 style={{
-                  background: form.type === t.value ? t.bg : '#fff',
-                  border: `2px solid ${form.type === t.value ? t.color : '#F0F0F0'}`,
+                  background: form.type === t.value ? t.bg : 'var(--card)',
+                  border: `2px solid ${form.type === t.value ? t.color : 'var(--border)'}`,
                   borderRadius: 12, padding: '12px 8px', cursor: 'pointer',
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
                   transition: 'all .15s',
@@ -153,9 +153,9 @@ export default function Report() {
 
         {/* Podjeljeno sa --- */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0 20px' }}>
-          <div style={{ flex: 1, height: 1, background: '#F0F0F0' }} />
+          <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
           <span style={{ fontSize: 11, fontWeight: 700, color: '#C4C4C4', letterSpacing: 1 }}>VAŠI PODACI (opciono)</span>
-          <div style={{ flex: 1, height: 1, background: '#F0F0F0' }} />
+          <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
         </div>
 
         {/* Ime */}
@@ -194,19 +194,19 @@ export default function Report() {
 }
 
 const fieldStyle: React.CSSProperties = {
-  width: '100%', border: '1.5px solid #F0F0F0', borderRadius: 10,
+  width: '100%', border: '1.5px solid var(--border)', borderRadius: 10,
   padding: '12px 14px', fontSize: 14, fontWeight: 500,
   fontFamily: 'Quicksand, sans-serif', outline: 'none',
-  background: '#FAFAFA', color: '#0D0D0D', transition: 'border-color .15s',
+  background: 'var(--bg)', color: 'var(--text)', transition: 'border-color .15s',
 };
 
 function onFocus(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
-  e.target.style.borderColor = '#007AFF';
-  e.target.style.background = '#fff';
+  e.target.style.borderColor = 'var(--primary)';
+  e.target.style.background = 'var(--card)';
 }
 function onBlur(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
-  e.target.style.borderColor = '#F0F0F0';
-  e.target.style.background = '#FAFAFA';
+  e.target.style.borderColor = 'var(--border)';
+  e.target.style.background = 'var(--bg)';
 }
 
 function Field({ label, children }: { label: string; children: React.ReactElement<React.InputHTMLAttributes<HTMLInputElement> | React.TextareaHTMLAttributes<HTMLTextAreaElement>> }) {

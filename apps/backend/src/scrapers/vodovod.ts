@@ -5,7 +5,7 @@ const BASE = 'https://www.viksa.ba';
 const URL  = process.env.VODOVOD_URL ?? `${BASE}/objave/servisne_informacije`;
 
 // ViK tekst sadrži više datuma — uzmi NAJRANIJI koji je danas ili u budućnosti
-function extractRelevantDate(text: string): Date | null {
+export function extractRelevantDate(text: string): Date | null {
   const matches = [...text.matchAll(/(\d{1,2})\.(\d{1,2})\.(\d{4})/g)];
   const today = sarajevoToday();
 

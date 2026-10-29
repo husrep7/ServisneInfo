@@ -14,7 +14,7 @@ const BS_MONTHS: Record<string, string> = {
 };
 
 // Parsiraj "12. Septembra 2026." ili "12.09.2026" u Date
-function parseBsDate(text: string): Date | null {
+export function parseBsDate(text: string): Date | null {
   // "12. Septembra 2026."
   const m1 = text.match(/(\d{1,2})\.\s+([a-zčćšžđA-ZČĆŠŽĐ]+)\s+(\d{4})/i);
   if (m1) {

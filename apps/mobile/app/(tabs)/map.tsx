@@ -101,6 +101,8 @@ export default function MapScreen() {
         style={styles.myLocationBtn}
         onPress={centerOnUser}
         activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel="Centriraj mapu na moju lokaciju"
       >
         <Text style={styles.myLocationIcon}>📍</Text>
       </TouchableOpacity>

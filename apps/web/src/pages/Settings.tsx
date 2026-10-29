@@ -4,6 +4,7 @@ import { COMPANIES } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { fetchScraperStatus } from '../api';
 import type { ScraperStatus } from '../api';
+import { clickable } from '../a11y';
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -55,7 +56,7 @@ export default function Settings() {
 
       {/* Dark mode row */}
       <div className="settings-list" style={{ marginTop: 8 }}>
-        <div className="settings-item" onClick={toggle} style={{ cursor: 'pointer' }}>
+        <div className="settings-item" {...clickable(toggle)} aria-pressed={theme === 'dark'} style={{ cursor: 'pointer' }}>
           <div className="settings-item-icon" style={{ background: theme === 'dark' ? '#1a2a4a' : '#F0F4FF', fontSize: 18 }}>
             {theme === 'dark' ? '🌙' : '☀️'}
           </div>
