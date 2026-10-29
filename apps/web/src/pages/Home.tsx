@@ -39,15 +39,20 @@ export default function Home() {
   const now = useClock();
 
   const load = useCallback(async () => {
-    const [active, scheduled] = await Promise.all([
-      fetchIncidents({ status: 'active',    limit: 100 }),
-      fetchIncidents({ status: 'scheduled', limit: 100 }),
-    ]);
-    const data = [...active, ...scheduled];
-    // Sortiraj po vremenu objave na sajtu preduzeća (created_at = kada je scraper pronašao)
-    data.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    setAll(data);
-    setLoading(false);
+    try {
+      const [active, scheduled] = await Promise.all([
+        fetchIncidents({ status: 'active',    limit: 100 }),
+        fetchIncidents({ status: 'scheduled', limit: 100 }),
+      ]);
+      const data = [...active, ...scheduled];
+      // Sortiraj po vremenu objave na sajtu preduzeća (created_at = kada je scraper pronašao)
+      data.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setAll(data);
+    } catch (err) {
+      console.error('Učitavanje incidenata nije uspjelo', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

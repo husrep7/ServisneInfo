@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { postReport } from '../api';
 
 type IncidentType = 'water' | 'electricity' | 'gas' | 'heating' | 'internet';
 
@@ -36,12 +36,13 @@ export default function Report() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.type)    return setError('Odaberite tip incidenta.');
-    if (!form.title)   return setError('Unesite kratak opis problema.');
-    if (!form.address) return setError('Unesite adresu/lokaciju.');
+    // Ista pravila kao na backendu (routes/reports.ts)
+    if (form.title.trim().length < 5)   return setError('Kratak opis mora imati najmanje 5 znakova.');
+    if (form.address.trim().length < 3) return setError('Unesite adresu/lokaciju (najmanje 3 znaka).');
     setError('');
     setLoading(true);
     try {
-      await axios.post('http://localhost:3000/reports', form);
+      await postReport(form);
       setSuccess(true);
       setForm(EMPTY);
     } catch {
