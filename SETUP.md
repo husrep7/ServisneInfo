@@ -59,6 +59,24 @@ cp .env.example .env   # VITE_API_URL
 npm run dev
 ```
 
+## Testovi i CI
+
+```bash
+npm test -w apps/backend        # parsiranje datuma/vremenske zone, scraperi, dedup
+npm run typecheck -w apps/backend
+```
+
+GitHub Actions (`.github/workflows/ci.yml`) na svakom PR-u pokreće typecheck (backend, mobile), testove, migracije dva puta na pravom PostGIS-u, kao i lint i build za web.
+
+## Deploy backenda (Docker)
+
+```bash
+docker build -f apps/backend/Dockerfile -t servisneinfo-backend .
+docker run -p 3000:3000 --env-file apps/backend/.env servisneinfo-backend
+```
+
+Kontejner pri startu prvo pokrene migracije (`node dist/db/migrate.js`), pa server. Radi na svakom hostingu koji podržava Dockerfile (Railway, Render, Fly.io, VPS). Potrebni su Postgres sa PostGIS-om i Redis.
+
 ## API endpointi
 
 | Method | Path | Opis |

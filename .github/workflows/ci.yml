@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  backend-mobile:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: komunalni
+          POSTGRES_PASSWORD: komunalni_pass
+          POSTGRES_DB: komunalni_db
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U komunalni"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://komunalni:komunalni_pass@localhost:5432/komunalni_db
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Backend — typecheck
+        run: npm run typecheck -w apps/backend
+      - name: Backend — testovi
+        run: npm test -w apps/backend
+      - name: Backend — migracije (2x, moraju biti idempotentne)
+        run: |
+          npm run migrate -w apps/backend
+          npm run migrate -w apps/backend
+          psql "$DATABASE_URL" -tAc "SELECT count(*) FROM schema_migrations" | grep -qx "$(ls apps/backend/src/db/migrations/*.sql | wc -l)"
+      - name: Backend — build
+        run: npm run build -w apps/backend
+
+      - name: Mobile — typecheck
+        run: npx tsc --noEmit -p apps/mobile
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
