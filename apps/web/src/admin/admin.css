@@ -85,6 +85,25 @@
   font-size: 18px;
   font-weight: 800;
 }
+.admin-nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 24px 0;
+}
+.admin-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: rgba(255,255,255,.75);
+  font-weight: 600;
+  text-decoration: none;
+}
+.admin-nav-link:hover { background: rgba(255,255,255,.06); color: #fff; }
+.admin-nav-link.active { background: rgba(255,255,255,.14); color: #fff; }
 .admin-logout {
   font: inherit;
   font-weight: 600;
@@ -99,14 +118,28 @@
   flex: 1;
   background: var(--bg);
 }
+.admin-page { padding: 28px 32px; }
+.admin-page-title { font-size: 22px; font-weight: 800; }
 
 @media (max-width: 640px) {
   .admin-shell { flex-direction: column; }
   .admin-sidebar {
     width: auto;
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
+    gap: 8px;
     padding: 14px 16px;
   }
+  .admin-sidebar-title { flex: 1; }
+  .admin-nav {
+    order: 3;
+    flex-basis: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+    margin: 0;
+  }
+  .admin-nav-link { white-space: nowrap; padding: 8px 10px; }
   .admin-logout { padding: 6px 12px; }
+  .admin-page { padding: 20px 16px; }
 }
