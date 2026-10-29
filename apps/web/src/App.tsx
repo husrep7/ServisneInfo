@@ -7,6 +7,8 @@ import Settings from './pages/Settings';
 import Report from './pages/Report';
 import { ThemeProvider } from './context/ThemeContext';
 import NotFound from './pages/NotFound';
+import AdminLogin from './admin/AdminLogin';
+import AdminLayout from './admin/AdminLayout';
 import './index.css';
 
 export default function App() {
@@ -20,6 +22,8 @@ export default function App() {
           <Route path="/map"           element={<><MapPage />    <BottomNav /></>} />
           <Route path="/report"        element={<Report />} />
           <Route path="/settings"      element={<><Settings />   <BottomNav /></>} />
+          <Route path="/admin/login"   element={<AdminLogin />} />
+          <Route path="/admin"         element={<AdminLayout />} />
           <Route path="*"              element={<><NotFound />   <BottomNav /></>} />
         </Routes>
       </BrowserRouter>
