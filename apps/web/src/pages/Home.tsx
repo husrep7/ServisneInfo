@@ -3,6 +3,7 @@ import { fetchIncidents, connectWS } from '../api';
 import { IncidentRow } from '../components/IncidentRow';
 import type { Incident } from '../types';
 import { COMPANIES } from '../types';
+import { clickable } from '../a11y';
 
 const DANI   = ['Nedjelja', 'Ponedjeljak', 'Utorak', 'Srijeda', 'Četvrtak', 'Petak', 'Subota'];
 const MJESECI = ['januar', 'februar', 'mart', 'april', 'maj', 'juni', 'juli', 'august', 'septembar', 'oktobar', 'novembar', 'decembar'];
@@ -113,7 +114,7 @@ export default function Home() {
             ].map(s => {
               const isSelected = statusFilter === s.status;
               return (
-                <div key={s.label} className="stat-card" onClick={() => setStatusFilter(isSelected ? 'all' : s.status)}
+                <div key={s.label} className="stat-card" {...clickable(() => setStatusFilter(isSelected ? 'all' : s.status))} aria-pressed={isSelected}
                   style={{ cursor: 'pointer', border: `2px solid ${isSelected ? s.color : 'transparent'}`, transition: 'all .15s' }}>
                   <div className="stat-number" style={{ color: s.color }}>{s.count}</div>
                   <div className="stat-label">{s.label}</div>
@@ -154,7 +155,7 @@ export default function Home() {
 
               return (
                 <div key={c.id}>
-                  <div onClick={() => toggleCollapse(c.id)} style={{
+                  <div {...clickable(() => toggleCollapse(c.id))} aria-expanded={isOpen} style={{
                     display: 'flex', alignItems: 'center', gap: 12,
                     padding: '14px 20px', cursor: 'pointer',
                     borderTop: '1px solid var(--border)',

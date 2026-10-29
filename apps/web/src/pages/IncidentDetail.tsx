@@ -4,7 +4,8 @@ import { fetchIncident } from '../api';
 import type { Incident } from '../types';
 import { TYPE_LABEL, TYPE_ICON, TYPE_COLOR, fmtDateTime } from '../types';
 
-declare const L: any;
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 export default function IncidentDetail() {
   const { id }   = useParams<{ id: string }>();
@@ -49,7 +50,7 @@ export default function IncidentDetail() {
     <div className="page">
       {/* Header */}
       <div className="detail-header">
-        <button className="back-btn" onClick={() => navigate(-1)}>‹</button>
+        <button className="back-btn" onClick={() => navigate(-1)} aria-label="Nazad">‹</button>
         <div style={{ flex: 1 }}>
           <div className="detail-type" style={{ color }}>
             {TYPE_ICON[incident.type]} {TYPE_LABEL[incident.type]}

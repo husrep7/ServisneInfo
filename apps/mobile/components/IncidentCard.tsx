@@ -117,6 +117,8 @@ export function IncidentCard({ incident }: Props) {
               <TouchableOpacity
                 onPress={() => Linking.openURL(incident.source_url!)}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="link"
+                accessibilityLabel="Otvori izvornu obavijest"
               >
                 <Text style={styles.sourceLink}>Izvor →</Text>
               </TouchableOpacity>

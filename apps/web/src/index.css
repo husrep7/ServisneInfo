@@ -75,6 +75,21 @@ html, body, #root {
   color: #8A93A8 !important;
 }
 
+/* Leaflet popup prati temu (inače bijeli tekst na bijeloj pozadini) */
+[data-theme="dark"] .leaflet-popup-content-wrapper,
+[data-theme="dark"] .leaflet-popup-tip {
+  background: var(--card);
+  color: var(--text);
+}
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder { color: var(--text-muted) !important; }
+
+/* Vidljiv fokus za navigaciju tastaturom */
+[role="button"]:focus-visible, button:focus-visible, a:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 button { font-family: inherit; cursor: pointer; border: none; background: none; }
 a { color: inherit; text-decoration: none; }
 ul { list-style: none; }

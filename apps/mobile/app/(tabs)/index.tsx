@@ -89,6 +89,8 @@ export default function HomeScreen() {
               style={[styles.chip, isActive && styles.chipActive]}
               onPress={() => setActiveFilter(f.value)}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isActive }}
             >
               <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
                 {f.icon} {f.label}

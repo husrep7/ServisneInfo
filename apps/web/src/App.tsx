@@ -6,6 +6,7 @@ import MapPage from './pages/MapPage';
 import Settings from './pages/Settings';
 import Report from './pages/Report';
 import { ThemeProvider } from './context/ThemeContext';
+import NotFound from './pages/NotFound';
 import './index.css';
 
 export default function App() {
@@ -15,10 +16,11 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/"              element={<><Home />       <BottomNav /></>} />
-<Route path="/incidents/:id" element={<IncidentDetail />} />
+          <Route path="/incidents/:id" element={<IncidentDetail />} />
           <Route path="/map"           element={<><MapPage />    <BottomNav /></>} />
           <Route path="/report"        element={<Report />} />
           <Route path="/settings"      element={<><Settings />   <BottomNav /></>} />
+          <Route path="*"              element={<><NotFound />   <BottomNav /></>} />
         </Routes>
       </BrowserRouter>
     </div>

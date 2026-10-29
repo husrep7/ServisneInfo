@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { clickable } from '../a11y';
 import type { Incident } from '../types';
 import { TYPE_COLOR, TYPE_SHORT, getCompany, fmtDate, fmtTime } from '../types';
 
@@ -8,7 +9,7 @@ export function IncidentRow({ incident }: { incident: Incident }) {
   const color    = TYPE_COLOR[incident.type];
 
   return (
-    <div className="inc-row" onClick={() => navigate(`/incidents/${incident.id}`)}>
+    <div className="inc-row" {...clickable(() => navigate(`/incidents/${incident.id}`))}>
       {/* Company logo */}
       <div className="inc-row-icon" style={{ background: company.logoBg, padding: 6 }}>
         <img

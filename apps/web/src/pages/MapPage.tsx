@@ -4,7 +4,9 @@ import { fetchIncidents } from '../api';
 import type { Incident, IncidentType } from '../types';
 import { TYPE_ICON, TYPE_COLOR, TYPE_LABEL, COMPANIES, getCompany } from '../types';
 
-declare const L: any;
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { clickable } from '../a11y';
 
 // Centroidi sarajevskih općina — fallback za incidente bez koordinata
 const OPCINA_COORDS: Record<string, [number, number]> = {
@@ -147,7 +149,8 @@ export default function MapPage() {
 
     mapInstance.current = map;
 
-    return () => { map.remove(); mapInstance.current = null; markersRef.current.clear(); };
+    const markers = markersRef.current;
+    return () => { map.remove(); mapInstance.current = null; markers.clear(); };
   }, []);
 
   // Ažuriraj markere kad se incidenti/filter promijeni
@@ -287,7 +290,7 @@ export default function MapPage() {
 
           return (
             <div key={incident.id}
-              onClick={() => focusIncident(incident)}
+              {...clickable(() => focusIncident(incident))}
               style={{
                 display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
                 background: isSelected ? `${color}18` : 'var(--card)',
