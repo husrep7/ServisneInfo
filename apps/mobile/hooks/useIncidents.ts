@@ -1,39 +1,66 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
-import { fetchIncidents, Incident } from "../services/api";
-import Constants from "expo-constants";
-
-const WS_URL =
-  (Constants.expoConfig?.extra?.apiUrl ?? "http://localhost:3000")
-    .replace("http", "ws") + "/ws";
+import { useEffect } from "react";
+import { AppState } from "react-native";
+import { fetchIncidents, Incident, WS_URL } from "../services/api";
 
 export function useIncidents(lat?: number, lng?: number) {
-  const queryClient = useQueryClient();
-  const wsRef = useRef<WebSocket | null>(null);
-
-  const query = useQuery<Incident[]>({
+  return useQuery<Incident[]>({
     queryKey: ["incidents", lat, lng],
     queryFn: () => fetchIncidents({ lat, lng }),
     refetchInterval: 60_000, // Fallback polling every 60s
     staleTime: 30_000,
   });
+}
 
-  // WebSocket for instant updates when app is in foreground
+// Jedan WebSocket za cijelu aplikaciju (montira se u root layoutu).
+// Automatski se ponovo spaja (exponential backoff) i kad se app vrati u foreground.
+export function useIncidentUpdates() {
+  const queryClient = useQueryClient();
+
   useEffect(() => {
-    const ws = new WebSocket(WS_URL);
-    wsRef.current = ws;
+    let ws: WebSocket | null = null;
+    let retry = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let closed = false;
 
-    ws.onmessage = (e) => {
-      const msg = JSON.parse(e.data) as { type: string };
-      if (msg.type === "incident:new" || msg.type === "incident:resolved") {
-        queryClient.invalidateQueries({ queryKey: ["incidents"] });
-      }
+    const invalidate = () => queryClient.invalidateQueries({ queryKey: ["incidents"] });
+
+    const open = () => {
+      clearTimeout(timer);
+      ws = new WebSocket(WS_URL);
+      ws.onopen = () => {
+        if (retry > 0) invalidate(); // mogli smo propustiti evente dok veza nije radila
+        retry = 0;
+      };
+      ws.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data) as { type: string };
+          if (msg.type === "incident:new" || msg.type === "incident:resolved") invalidate();
+        } catch {
+          // ignoriši neispravne poruke
+        }
+      };
+      ws.onerror = () => {/* onclose će zakazati reconnect; HTTP polling je fallback */};
+      ws.onclose = () => {
+        if (closed) return;
+        timer = setTimeout(open, Math.min(30_000, 1000 * 2 ** retry++));
+      };
     };
+    open();
 
-    ws.onerror = () => {/* silent — HTTP polling is the fallback */};
+    const appState = AppState.addEventListener("change", (next) => {
+      if (next === "active" && ws?.readyState !== WebSocket.OPEN) {
+        retry = 0;
+        ws?.close();
+        open();
+      }
+    });
 
-    return () => ws.close();
+    return () => {
+      closed = true;
+      clearTimeout(timer);
+      appState.remove();
+      ws?.close();
+    };
   }, [queryClient]);
-
-  return query;
 }

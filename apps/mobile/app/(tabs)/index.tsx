@@ -24,6 +24,7 @@ const FILTERS: { label: string; value: Filter; icon: string }[] = [
   { label: "Struja",   value: "electricity", icon: "⚡" },
   { label: "Gas",      value: "gas",         icon: "🔥" },
   { label: "Grijanje", value: "heating",     icon: "🏠" },
+  { label: "Internet", value: "internet",    icon: "🌐" },
 ];
 
 export default function HomeScreen() {

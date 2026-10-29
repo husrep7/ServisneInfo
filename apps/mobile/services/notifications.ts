@@ -1,5 +1,7 @@
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
+import Constants from "expo-constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 import { registerDevice } from "./api";
 
@@ -11,13 +13,20 @@ Notifications.setNotificationHandler({
   }),
 });
 
-export async function registerForPushNotifications(
-  lat?: number,
-  lng?: number
-): Promise<string | null> {
+export async function registerForPushNotifications(): Promise<string | null> {
   if (!Device.isDevice) {
     console.warn("Push notifications require a physical device");
     return null;
+  }
+
+  // Android 13+: dijalog za dozvolu se ne prikazuje dok ne postoji bar jedan kanal
+  if (Platform.OS === "android") {
+    await Notifications.setNotificationChannelAsync("komunalni", {
+      name: "Komunalne obavijesti",
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: "#1a73e8",
+    });
   }
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -33,26 +42,22 @@ export async function registerForPushNotifications(
     return null;
   }
 
-  if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("komunalni", {
-      name: "Komunalne obavijesti",
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#1a73e8",
-    });
+  // SDK 51 zahtijeva EAS projectId (app.json → extra.eas.projectId, postavlja `eas init`)
+  const projectId =
+    Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+  if (!projectId) {
+    console.warn("Missing EAS projectId — push notifications disabled");
+    return null;
   }
 
-  const token = (await Notifications.getExpoPushTokenAsync()).data;
+  const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
 
   // Register token with backend
-  const { tokenId } = await registerDevice({ expoToken: token, lat, lng });
+  const { tokenId } = await registerDevice({ expoToken: token });
   await saveTokenId(tokenId);
 
   return tokenId;
 }
-
-// Simple AsyncStorage wrapper — in prod use SecureStore
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export async function saveTokenId(tokenId: string) {
   await AsyncStorage.setItem("device_token_id", tokenId);

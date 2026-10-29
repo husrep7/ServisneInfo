@@ -15,9 +15,10 @@
       "supportsTablet": false,
       "bundleIdentifier": "ba.komunalniinfo.app",
       "infoPlist": {
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Koristimo lokaciju da bismo vas obavijestili o komunalnim problemima u vašem trenutnom području.",
         "NSLocationWhenInUseUsageDescription": "Koristimo lokaciju da prikažemo incidente blizu vas.",
-        "UIBackgroundModes": ["location", "fetch", "remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -26,7 +27,6 @@
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION",
         "RECEIVE_BOOT_COMPLETED"
       ],
       "adaptiveIcon": {
@@ -38,8 +38,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Koristimo lokaciju za komunalne obavijesti.",
-          "isAndroidBackgroundLocationEnabled": true
+          "locationWhenInUsePermission": "Koristimo lokaciju da prikažemo incidente blizu vas i pošaljemo obavijesti za vaše područje."
         }
       ],
       [
