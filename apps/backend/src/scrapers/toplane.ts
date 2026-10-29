@@ -1,3 +1,4 @@
+import * as cheerio from 'cheerio';
 import { fetchHtml, parseBosnianDate, runScraper, ParsedItem } from './base';
 import type { ScraperResult } from './index';
 
@@ -7,7 +8,10 @@ const BASE = 'https://www.toplanesarajevo.ba';
 const URL  = process.env.TOPLANE_URL ?? `${BASE}/korisnici/obavijest-o-radovima`;
 
 async function scrape(): Promise<ParsedItem[]> {
-  const $ = await fetchHtml(URL);
+  return parseToplane(await fetchHtml(URL));
+}
+
+export function parseToplane($: cheerio.CheerioAPI): ParsedItem[] {
   const items: ParsedItem[] = [];
 
   // Page heading contains the date: "Pregled objekata koji se ne griju na dan 13.9.2026."

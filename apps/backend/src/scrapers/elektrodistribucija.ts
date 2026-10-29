@@ -16,7 +16,7 @@ function isSarajevo(opcina: string): boolean {
 }
 
 // Parse "13.09.2026" + "08:00-14:00" into Date objects
-function parseDatetime(dateStr: string, timeStr: string): { startsAt: Date | null; endsAt: Date | null } {
+export function parseDatetime(dateStr: string, timeStr: string): { startsAt: Date | null; endsAt: Date | null } {
   const dm = dateStr.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
   if (!dm) return { startsAt: null, endsAt: null };
   const [d, mo, y] = [+dm[1], +dm[2], +dm[3]];
@@ -36,7 +36,12 @@ async function scrape(): Promise<ParsedItem[]> {
     headers: { 'User-Agent': 'KomunalniInfo/1.0 (info@komunalniinfo.ba)' },
     timeout: 12000,
   });
-  const $ = cheerio.load(res.data);
+  return parseElektroHtml(res.data);
+}
+
+// Odvojeno od fetcha da bi se parsiranje moglo testirati na snimljenom HTML-u
+export function parseElektroHtml(html: string): ParsedItem[] {
+  const $ = cheerio.load(html);
 
   // Group rows by opcina+date+time into incidents
   const groups = new Map<string, { opcina: string; ulice: string[]; dateStr: string; timeStr: string }>();
