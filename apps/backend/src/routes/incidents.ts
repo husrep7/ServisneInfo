@@ -9,7 +9,8 @@ const QuerySchema = z.object({
   status: z.enum(["active", "resolved", "scheduled", "all"]).optional().default("active"),
   limit:  z.coerce.number().min(1).max(200).optional().default(50),
   // Ako je today=true, vraćamo samo incidente čiji starts_at je danas ili u budućnosti
-  today:  z.coerce.boolean().optional().default(true),
+  // z.coerce.boolean() bi i "false" pretvorio u true
+  today:  z.enum(["true", "false"]).optional().default("true").transform((v) => v === "true"),
 });
 
 // Incident je "relevantan za danas" ako:
@@ -32,7 +33,6 @@ export async function incidentsRoutes(app: FastifyInstance) {
 
     const statusFilter = query.status === "all" ? "" : "AND status = $1";
     const todayFilter  = query.today ? TODAY_FILTER : "";
-    const typeFilter   = query.type  ? `AND type = $${query.status === "all" ? 1 : 2}` : "";
 
     // Build params — status always first if used
     const buildParams = (...extra: unknown[]) =>
@@ -62,7 +62,7 @@ export async function incidentsRoutes(app: FastifyInstance) {
       return rows.map(r => ({
         ...r,
         area_geojson:    r.area_geojson    ? JSON.parse(r.area_geojson) : null,
-        distance_meters: r.distance_meters ? Math.round(r.distance_meters) : null,
+        distance_meters: r.distance_meters != null ? Math.round(r.distance_meters) : null,
       }));
     }
 
@@ -94,6 +94,9 @@ export async function incidentsRoutes(app: FastifyInstance) {
 
   // GET /incidents/:id
   app.get<{ Params: { id: string } }>("/incidents/:id", async (req, reply) => {
+    if (!z.string().uuid().safeParse(req.params.id).success) {
+      return reply.status(404).send({ error: "Not found" });
+    }
     const { rows } = await db.query(
       `SELECT *, ST_AsGeoJSON(affected_area) AS area_geojson FROM incidents WHERE id=$1`,
       [req.params.id]

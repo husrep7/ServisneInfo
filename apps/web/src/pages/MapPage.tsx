@@ -70,15 +70,20 @@ function makeMarkerIcon(incident: Incident): any {
   });
 }
 
+// Naslovi i adrese dolaze sa scrapovanih stranica — nikad ih ne ubacivati kao sirovi HTML
+function esc(s: string): string {
+  return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+}
+
 function makePopup(incident: Incident): string {
   const color   = TYPE_COLOR[incident.type];
   const company = getCompany(incident.type);
-  const addrs   = incident.affected_addresses?.slice(0, 3).join(', ') ?? '';
+  const addrs   = esc(incident.affected_addresses?.slice(0, 3).join(', ') ?? '');
   const time    = incident.starts_at
-    ? new Date(incident.starts_at).toLocaleTimeString('hr', { hour: '2-digit', minute: '2-digit' })
+    ? new Date(incident.starts_at).toLocaleTimeString('hr', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Sarajevo' })
     : '';
   const endTime = incident.ends_at
-    ? new Date(incident.ends_at).toLocaleTimeString('hr', { hour: '2-digit', minute: '2-digit' })
+    ? new Date(incident.ends_at).toLocaleTimeString('hr', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Sarajevo' })
     : '';
 
   return `
@@ -90,7 +95,7 @@ function makePopup(incident: Incident): string {
           ? '<span style="background:#ED1D1D;color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px">● AKTIVNO</span>'
           : '<span style="background:#F8B900;color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px">PLANIRANO</span>'}
       </div>
-      <div style="font-size:14px;font-weight:700;margin-bottom:6px;line-height:1.3">${incident.title}</div>
+      <div style="font-size:14px;font-weight:700;margin-bottom:6px;line-height:1.3">${esc(incident.title)}</div>
       ${addrs ? `<div style="font-size:12px;color:#666;margin-bottom:6px">📍 ${addrs}</div>` : ''}
       ${time ? `<div style="font-size:12px;color:#666;margin-bottom:8px">🕐 ${time}${endTime ? ` – ${endTime}` : ''}</div>` : ''}
       <div style="display:flex;align-items:center;gap:6px;padding-top:8px;border-top:1px solid #f0f0f0">
@@ -112,12 +117,15 @@ export default function MapPage() {
 
   const load = useCallback(async () => {
     // Dohvati i aktivan i planirane
-    const [active, scheduled] = await Promise.all([
-      fetchIncidents({ status: 'active',    limit: 100 }),
-      fetchIncidents({ status: 'scheduled', limit: 100 }),
-    ]);
-    const all = [...active, ...scheduled];
-    setIncidents(all);
+    try {
+      const [active, scheduled] = await Promise.all([
+        fetchIncidents({ status: 'active',    limit: 100 }),
+        fetchIncidents({ status: 'scheduled', limit: 100 }),
+      ]);
+      setIncidents([...active, ...scheduled]);
+    } catch (err) {
+      console.error('Učitavanje incidenata nije uspjelo', err);
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -138,6 +146,8 @@ export default function MapPage() {
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
     mapInstance.current = map;
+
+    return () => { map.remove(); mapInstance.current = null; markersRef.current.clear(); };
   }, []);
 
   // Ažuriraj markere kad se incidenti/filter promijeni

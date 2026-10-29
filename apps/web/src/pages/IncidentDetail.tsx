@@ -16,7 +16,11 @@ export default function IncidentDetail() {
 
   useEffect(() => {
     if (!id) return;
-    fetchIncident(id).then(d => { setIncident(d); setLoading(false); });
+    setLoading(true);
+    fetchIncident(id)
+      .then(setIncident)
+      .catch(() => setIncident(null))
+      .finally(() => setLoading(false));
   }, [id]);
 
   useEffect(() => {
@@ -32,6 +36,8 @@ export default function IncidentDetail() {
       }).addTo(map);
       map.fitBounds(layer.getBounds(), { padding: [20, 20] });
     }
+
+    return () => { map.remove(); mapInstance.current = null; };
   }, [incident]);
 
   if (loading) return <div className="spinner" style={{ paddingTop: 100 }}><div className="spinner-ring" /></div>;

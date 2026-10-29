@@ -9,8 +9,10 @@
 
 ```bash
 cp .env.example apps/backend/.env
-# Popunite ANTHROPIC_API_KEY i EXPO_ACCESS_TOKEN
+# Popunite ANTHROPIC_API_KEY, EXPO_ACCESS_TOKEN i ADMIN_TOKEN
 ```
+
+Postgres iz docker-compose radi na portu **5434** (`.env.example` je već podešen).
 
 ## 2. Pokrenite bazu i Redis
 
@@ -26,6 +28,8 @@ npm install
 npm run migrate
 ```
 
+Migracije se primjenjuju redom (`src/db/migrations/*.sql`) i bilježe u tabeli `schema_migrations`, pa je `npm run migrate` sigurno pokretati više puta.
+
 ## 4. Pokrenite backend
 
 ```bash
@@ -39,8 +43,20 @@ npm run dev
 ```bash
 cd apps/mobile
 npm install
-npx expo start
+# localhost na telefonu ne radi — koristite LAN IP računara
+EXPO_PUBLIC_API_URL=http://192.168.x.x:3000 npx expo start
 # Skenirajte QR kod Expo Go aplikacijom
+```
+
+Za push notifikacije potreban je EAS projectId (`npx eas init` ga upisuje u `app.json` → `extra.eas.projectId`).
+
+## 6. Web aplikacija
+
+```bash
+cd apps/web
+npm install
+cp .env.example .env   # VITE_API_URL
+npm run dev
 ```
 
 ## API endpointi
@@ -53,6 +69,9 @@ npx expo start
 | POST | /devices/location | Prijava nove lokacije |
 | GET | /ws | WebSocket za live update |
 | GET | /health | Health check |
+| POST | /reports | Prijava problema od korisnika |
+| GET | /reports | Lista prijava (admin, `Authorization: Bearer $ADMIN_TOKEN`) |
+| POST | /scrape-now | Ručno pokretanje scrapera (admin) |
 
 ## Arhitektura
 

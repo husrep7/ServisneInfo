@@ -3,10 +3,14 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- Incident types: water, electricity, gas, heating, internet
-CREATE TYPE incident_type AS ENUM ('water', 'electricity', 'gas', 'heating', 'internet');
-CREATE TYPE incident_status AS ENUM ('active', 'resolved', 'scheduled');
+DO $$ BEGIN
+  CREATE TYPE incident_type AS ENUM ('water', 'electricity', 'gas', 'heating', 'internet');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE TYPE incident_status AS ENUM ('active', 'resolved', 'scheduled');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-CREATE TABLE incidents (
+CREATE TABLE IF NOT EXISTS incidents (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   type          incident_type NOT NULL,
   title         TEXT NOT NULL,
@@ -25,12 +29,12 @@ CREATE TABLE incidents (
 );
 
 -- Spatial index — critical for fast geofence lookups
-CREATE INDEX incidents_affected_area_gix ON incidents USING GIST (affected_area);
-CREATE INDEX incidents_status_idx ON incidents (status);
-CREATE INDEX incidents_type_idx ON incidents (type);
+CREATE INDEX IF NOT EXISTS incidents_affected_area_gix ON incidents USING GIST (affected_area);
+CREATE INDEX IF NOT EXISTS incidents_status_idx ON incidents (status);
+CREATE INDEX IF NOT EXISTS incidents_type_idx ON incidents (type);
 
 -- Push token registry: one row per device
-CREATE TABLE device_tokens (
+CREATE TABLE IF NOT EXISTS device_tokens (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   expo_token    TEXT NOT NULL UNIQUE,
   -- Last known location of the device
@@ -41,7 +45,7 @@ CREATE TABLE device_tokens (
 );
 
 -- Track which notifications were already sent (prevent duplicates)
-CREATE TABLE sent_notifications (
+CREATE TABLE IF NOT EXISTS sent_notifications (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   incident_id UUID NOT NULL REFERENCES incidents(id) ON DELETE CASCADE,
   token_id    UUID NOT NULL REFERENCES device_tokens(id) ON DELETE CASCADE,
@@ -50,7 +54,7 @@ CREATE TABLE sent_notifications (
 );
 
 -- Scraper run log
-CREATE TABLE scraper_runs (
+CREATE TABLE IF NOT EXISTS scraper_runs (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   source          VARCHAR(100) NOT NULL,
   incidents_found INTEGER NOT NULL DEFAULT 0,

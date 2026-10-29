@@ -41,8 +41,9 @@ export async function notifyDevicesInArea(incident: IncidentRow): Promise<void> 
   if (tokens.length === 0) return;
 
   const emoji = typeEmoji[incident.type] || "📢";
-  const messages: ExpoPushMessage[] = tokens
-    .filter((t) => Expo.isExpoPushToken(t.expo_token))
+  // Tickete uparujemo s ovom (filtriranom) listom — redoslijed odgovara poslanim porukama
+  const validTokens = tokens.filter((t) => Expo.isExpoPushToken(t.expo_token));
+  const messages: ExpoPushMessage[] = validTokens
     .map((t) => ({
       to: t.expo_token,
       title: `${emoji} ${incident.title}`,
@@ -62,13 +63,16 @@ export async function notifyDevicesInArea(incident: IncidentRow): Promise<void> 
   }
 
   // Record sent notifications to avoid duplicates
-  for (let i = 0; i < tokens.length; i++) {
+  for (let i = 0; i < validTokens.length; i++) {
     const ticket = tickets[i];
     if (ticket?.status === "ok") {
       await db.query(
         "INSERT INTO sent_notifications (incident_id, token_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
-        [incident.id, tokens[i].id]
+        [incident.id, validTokens[i].id]
       );
+    } else if (ticket?.status === "error" && ticket.details?.error === "DeviceNotRegistered") {
+      // Aplikacija je obrisana / token nevažeći — uklanjamo ga
+      await db.query("DELETE FROM device_tokens WHERE id = $1", [validTokens[i].id]);
     }
   }
 

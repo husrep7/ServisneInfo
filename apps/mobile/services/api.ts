@@ -1,8 +1,14 @@
 import axios from "axios";
 import Constants from "expo-constants";
 
-const BASE_URL =
-  Constants.expoConfig?.extra?.apiUrl ?? "http://localhost:3000";
+// localhost na telefonu je sam telefon — postaviti EXPO_PUBLIC_API_URL
+// (LAN IP računara u developmentu, npr. http://192.168.1.10:3000, ili produkcijski URL)
+export const BASE_URL: string =
+  process.env.EXPO_PUBLIC_API_URL ??
+  Constants.expoConfig?.extra?.apiUrl ??
+  "http://localhost:3000";
+
+export const WS_URL = BASE_URL.replace(/^http/, "ws") + "/ws";
 
 export const api = axios.create({ baseURL: BASE_URL, timeout: 10000 });
 
@@ -27,8 +33,12 @@ export async function fetchIncidents(params?: {
   lng?: number;
   type?: Incident["type"];
 }): Promise<Incident[]> {
-  const { data } = await api.get<Incident[]>("/incidents", { params });
-  return data;
+  // Backend po defaultu vraća samo aktivne — dohvatamo i planirane (kao web)
+  const [active, scheduled] = await Promise.all([
+    api.get<Incident[]>("/incidents", { params: { ...params, status: "active" } }),
+    api.get<Incident[]>("/incidents", { params: { ...params, status: "scheduled" } }),
+  ]);
+  return [...active.data, ...scheduled.data];
 }
 
 export async function registerDevice(payload: {

@@ -1,31 +1,20 @@
-import { fetchHtml, parseBosnianDate, runScraper, ParsedItem } from './base';
+import { fetchHtml, runScraper, sarajevoDate, sarajevoToday, ParsedItem } from './base';
 import type { ScraperResult } from './index';
 
 const BASE = 'https://www.viksa.ba';
 const URL  = process.env.VODOVOD_URL ?? `${BASE}/objave/servisne_informacije`;
 
-// ViK objavljuje radove za DANAS ili SUTRA — prihvatamo do +2 dana
-function isRelevantDate(date: Date | null): boolean {
-  if (!date) return false;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const maxDate = new Date(today);
-  maxDate.setDate(maxDate.getDate() + 3); // danas + sutra + prekosutra
-  return date >= today && date <= maxDate;
-}
-
 // ViK tekst sadrži više datuma — uzmi NAJRANIJI koji je danas ili u budućnosti
 function extractRelevantDate(text: string): Date | null {
   const matches = [...text.matchAll(/(\d{1,2})\.(\d{1,2})\.(\d{4})/g)];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = sarajevoToday();
 
   const dates = matches
     .map(m => {
       const [, d, mo, y] = m;
-      return new Date(`${y}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}T00:00:00`);
+      return sarajevoDate(+y, +mo, +d);
     })
-    .filter(d => !isNaN(d.getTime()) && d >= today)
+    .filter((d): d is Date => d !== null && d >= today)
     .sort((a, b) => a.getTime() - b.getTime());
 
   return dates[0] ?? null;

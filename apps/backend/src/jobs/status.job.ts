@@ -10,14 +10,16 @@ async function updateStatuses(): Promise<void> {
       AND status != 'resolved'
   `);
 
-  // 2. Zatvori incidente bez ends_at koji nisu objavljeni danas
-  //    Pravilo: obavijest je aktivna samo na dan objave (created_at)
+  // 2. Zatvori incidente bez ends_at koji danas više nisu objavljeni na izvoru
+  //    Pravilo: obavijest je aktivna dok god je scraper vidi (last_seen_at)
   //    Vrijedi za: Sarajevogas, ViK obavijesti, Toplane i sl.
+  //    Planirani incidenti (scheduled) se ne diraju — prvo moraju početi
   const { rowCount: r2 } = await db.query(`
     UPDATE incidents SET status = 'resolved', updated_at = NOW()
     WHERE ends_at IS NULL
-      AND created_at::date < CURRENT_DATE
-      AND status != 'resolved'
+      AND (last_seen_at AT TIME ZONE 'Europe/Sarajevo')::date
+          < (NOW() AT TIME ZONE 'Europe/Sarajevo')::date
+      AND status = 'active'
   `);
 
   // 3. Aktiviraj scheduled incidente čiji je starts_at nastupio
