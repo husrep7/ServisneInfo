@@ -21,7 +21,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
   // Android 13+: dijalog za dozvolu se ne prikazuje dok ne postoji bar jedan kanal
   if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("komunalni", {
+    await Notifications.setNotificationChannelAsync("servisneinfo", {
       name: "Komunalne obavijesti",
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],

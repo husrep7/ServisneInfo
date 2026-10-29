@@ -1,5 +1,5 @@
 {
-  "name": "komunalni-info",
+  "name": "servisneinfo",
   "private": true,
   "workspaces": ["apps/backend", "apps/mobile"],
   "scripts": {

@@ -33,7 +33,7 @@ export function parseDatetime(dateStr: string, timeStr: string): { startsAt: Dat
 
 async function scrape(): Promise<ParsedItem[]> {
   const res = await axios.get<string>(URL, {
-    headers: { 'User-Agent': 'KomunalniInfo/1.0 (info@komunalniinfo.ba)' },
+    headers: { 'User-Agent': 'ServisneInfo/1.0 (info@servisneinfo.ba)' },
     timeout: 12000,
   });
   return parseElektroHtml(res.data);

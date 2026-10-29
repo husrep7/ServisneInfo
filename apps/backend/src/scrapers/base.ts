@@ -57,7 +57,7 @@ function safeIso(d: Date | null): string | null {
 
 export async function fetchHtml(url: string): Promise<cheerio.CheerioAPI> {
   const res = await axios.get<string>(url, {
-    headers: { 'User-Agent': 'KomunalniInfo/1.0 (info@komunalniinfo.ba)' },
+    headers: { 'User-Agent': 'ServisneInfo/1.0 (info@servisneinfo.ba)' },
     timeout: 12000,
   });
   return cheerio.load(res.data);

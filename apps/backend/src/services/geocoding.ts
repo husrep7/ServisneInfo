@@ -77,7 +77,7 @@ async function geocodeAddress(address: string): Promise<[number, number] | null>
           viewbox: SARAJEVO_VIEWBOX,
           bounded: 1,
         },
-        headers: { "User-Agent": "KomunalniInfo/1.0 (komunalniinfo@example.com)" },
+        headers: { "User-Agent": "ServisneInfo/1.0 (info@servisneinfo.ba)" },
         timeout: 5000,
       }
     );

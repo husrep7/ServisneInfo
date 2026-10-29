@@ -172,7 +172,7 @@ export default function MapPage() {
       bounds.push(coords);
 
       const marker = L.marker(coords, { icon: makeMarkerIcon(incident) })
-        .bindPopup(makePopup(incident), { maxWidth: 280, className: 'komunalni-popup' })
+        .bindPopup(makePopup(incident), { maxWidth: 280, className: 'servisneinfo-popup' })
         .on('click', () => setSelected(incident))
         .addTo(map);
 
@@ -334,14 +334,14 @@ export default function MapPage() {
       )}
 
       <style>{`
-        .komunalni-popup .leaflet-popup-content-wrapper {
+        .servisneinfo-popup .leaflet-popup-content-wrapper {
           border-radius: 14px;
           box-shadow: 0 8px 32px rgba(0,0,0,0.15);
           border: none;
           padding: 0;
         }
-        .komunalni-popup .leaflet-popup-content { margin: 16px; }
-        .komunalni-popup .leaflet-popup-tip { background: #fff; }
+        .servisneinfo-popup .leaflet-popup-content { margin: 16px; }
+        .servisneinfo-popup .leaflet-popup-tip { background: #fff; }
       `}</style>
     </div>
   );

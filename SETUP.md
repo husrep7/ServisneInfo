@@ -1,4 +1,4 @@
-# Komunalni Info — Setup
+# ServisneInfo — Setup
 
 ## Preduslovi
 - Docker Desktop

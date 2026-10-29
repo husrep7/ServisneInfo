@@ -3,12 +3,12 @@ version: "3.9"
 services:
   postgres:
     image: postgis/postgis:16-3.4
-    container_name: komunalni_postgres
+    container_name: servisneinfo_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: komunalni
-      POSTGRES_PASSWORD: komunalni_pass
-      POSTGRES_DB: komunalni_db
+      POSTGRES_USER: servisneinfo
+      POSTGRES_PASSWORD: servisneinfo_pass
+      POSTGRES_DB: servisneinfo_db
     ports:
       - "5434:5432"
     volumes:
@@ -16,7 +16,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: komunalni_redis
+    container_name: servisneinfo_redis
     restart: unless-stopped
     ports:
       - "6379:6379"

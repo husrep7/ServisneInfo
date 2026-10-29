@@ -1,19 +1,19 @@
 {
   "expo": {
-    "name": "Komunalni Info",
-    "slug": "komunalni-info",
+    "name": "ServisneInfo",
+    "slug": "servisneinfo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "scheme": "komunalniinfo",
+    "scheme": "servisneinfo",
     "splash": {
       "resizeMode": "contain",
       "backgroundColor": "#1a73e8"
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "ba.komunalniinfo.app",
+      "bundleIdentifier": "ba.servisneinfo.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Koristimo lokaciju da prikažemo incidente blizu vas.",
         "UIBackgroundModes": [
@@ -22,7 +22,7 @@
       }
     },
     "android": {
-      "package": "ba.komunalniinfo.app",
+      "package": "ba.servisneinfo.app",
       "versionCode": 1,
       "permissions": [
         "ACCESS_COARSE_LOCATION",
