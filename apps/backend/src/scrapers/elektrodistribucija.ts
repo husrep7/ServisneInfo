@@ -1,6 +1,6 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import { parseBosnianDate, runScraper, ParsedItem } from './base';
+import { sarajevoDate, runScraper, ParsedItem } from './base';
 import type { ScraperResult } from './index';
 
 const URL = process.env.ELEKTRO_URL ?? 'https://www.epbih.ba/stranica/servisne-informacije';
@@ -17,21 +17,18 @@ function isSarajevo(opcina: string): boolean {
 
 // Parse "13.09.2026" + "08:00-14:00" into Date objects
 function parseDatetime(dateStr: string, timeStr: string): { startsAt: Date | null; endsAt: Date | null } {
-  const base = parseBosnianDate(dateStr);
-  if (!base) return { startsAt: null, endsAt: null };
+  const dm = dateStr.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+  if (!dm) return { startsAt: null, endsAt: null };
+  const [d, mo, y] = [+dm[1], +dm[2], +dm[3]];
 
   const timeParts = timeStr.match(/(\d{1,2}):(\d{2})\s*[-–]\s*(\d{1,2}):(\d{2})/);
-  if (!timeParts) return { startsAt: base, endsAt: null };
+  if (!timeParts) return { startsAt: sarajevoDate(y, mo, d), endsAt: null };
 
   const [, sh, sm, eh, em] = timeParts;
-  const baseDateStr = base.toISOString().split('T')[0];
-  const tzOffset = Intl.DateTimeFormat('en', { timeZone: 'Europe/Sarajevo', timeZoneName: 'shortOffset' })
-    .formatToParts(base).find(p => p.type === 'timeZoneName')?.value?.replace('GMT', '') ?? '+02:00';
-  const tz = tzOffset.includes(':') ? tzOffset : `${tzOffset}:00`;
-  const startsAt = new Date(`${baseDateStr}T${sh.padStart(2,'0')}:${sm}:00${tz}`);
-  const endsAt   = new Date(`${baseDateStr}T${eh.padStart(2,'0')}:${em}:00${tz}`);
-
-  return { startsAt, endsAt };
+  return {
+    startsAt: sarajevoDate(y, mo, d, +sh, +sm),
+    endsAt:   sarajevoDate(y, mo, d, +eh, +em),
+  };
 }
 
 async function scrape(): Promise<ParsedItem[]> {

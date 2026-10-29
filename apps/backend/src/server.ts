@@ -7,13 +7,24 @@ import { incidentsRoutes } from "./routes/incidents";
 import { devicesRoutes } from "./routes/devices";
 import { websocketRoutes } from "./routes/websocket";
 import { reportsRoutes } from "./routes/reports";
-import { startScraperJobs } from "./jobs/scraper.job";
+import { startScraperJobs, runAllScrapers } from "./jobs/scraper.job";
 import { startStatusJob } from "./jobs/status.job";
 import { config } from "./config";
+import { ZodError } from "zod";
+import { requireAdmin } from "./auth";
+import { SCRAPERS } from "./scrapers/index";
 
 const app = Fastify({ logger: true });
 
 async function main() {
+  // Neispravan input (zod) je greška klijenta, ne servera
+  app.setErrorHandler((err, _req, reply) => {
+    if (err instanceof ZodError) {
+      return reply.status(400).send({ error: "Invalid request", issues: err.issues });
+    }
+    reply.send(err);
+  });
+
   await app.register(cors, { origin: "*" });
   await app.register(websocket);
 
@@ -36,13 +47,13 @@ async function main() {
     return rows;
   });
 
-  app.post("/scrape-now", async () => {
-    const { SCRAPERS } = await import("./scrapers/index");
-    const results = await Promise.allSettled(SCRAPERS.map(s => s.run()));
-    return results.map((r, i) => ({
-      source: SCRAPERS[i].name,
-      ...(r.status === "fulfilled" ? r.value : { error: String((r as PromiseRejectedResult).reason) }),
-    }));
+  app.post("/scrape-now", { preHandler: requireAdmin }, async () => {
+    const results = await runAllScrapers();
+    return results.map((r, i) =>
+      r.status === "fulfilled"
+        ? r.value
+        : { source: SCRAPERS[i].name, error: String(r.reason) }
+    );
   });
 
   startScraperJobs();

@@ -1,4 +1,4 @@
-CREATE TABLE reports (
+CREATE TABLE IF NOT EXISTS reports (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   type          incident_type NOT NULL,
   title         TEXT NOT NULL,

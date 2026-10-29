@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { db } from '../db';
+import { requireAdmin } from '../auth';
 
 const CreateSchema = z.object({
   type:         z.enum(['water', 'electricity', 'gas', 'heating', 'internet']),
@@ -27,7 +28,8 @@ export async function reportsRoutes(app: FastifyInstance) {
     return reply.status(201).send({ id: rows[0].id, message: 'Prijava zaprimljena. Hvala!' });
   });
 
-  app.get('/reports', async () => {
+  // Sadrži lične podatke prijavitelja — samo za admina
+  app.get('/reports', { preHandler: requireAdmin }, async () => {
     const { rows } = await db.query(
       `SELECT * FROM reports ORDER BY created_at DESC LIMIT 100`
     );

@@ -1,7 +1,8 @@
 import { fetchHtml, parseBosnianDate, runScraper, ParsedItem } from './base';
 import type { ScraperResult } from './index';
 
-// KJKP Toplane Sarajevo — tabela: Kotlovnica | Adresa | Početak | Kraj | Razlog
+// KJKP Toplane Sarajevo — tabela: Kotlovnica | Adresa | Nadležnost | Nosilac radova |
+//   Početak radova | Planirani rok završetka | Broj stanova | Razlog negrijanja
 const BASE = 'https://www.toplanesarajevo.ba';
 const URL  = process.env.TOPLANE_URL ?? `${BASE}/korisnici/obavijest-o-radovima`;
 
@@ -16,7 +17,7 @@ async function scrape(): Promise<ParsedItem[]> {
   // Parse each table row — skip header row (th)
   $('table tr').each((_, row) => {
     const cells = $(row).find('td');
-    if (cells.length < 3) return; // skip header
+    if (cells.length < 6) return; // skip header
 
     const kotlovnica  = $(cells[0]).text().trim();
     const adresa      = $(cells[1]).text().trim();

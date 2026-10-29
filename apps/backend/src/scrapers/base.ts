@@ -1,8 +1,10 @@
+import { createHash } from 'crypto';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { db } from '../db';
 import { parseAddressesFromText, buildPolygonFromAddresses } from '../services/geocoding';
 import { notifyDevicesInArea } from '../services/notifications';
+import { publishIncidentEvent } from '../routes/websocket';
 import type { ScraperResult } from './index';
 
 export type IncidentType = 'water' | 'electricity' | 'gas' | 'heating' | 'internet';
@@ -16,29 +18,36 @@ export interface ParsedItem {
 }
 
 // Common date pattern: "13.09.2026" or "13.09.2026. u 09:00" or "13.9.2026"
-// Sarajevo je UTC+2 (CEST ljeto) / UTC+1 (CET zima)
-// Koristimo Europe/Sarajevo offset da bi se vremena tačno pohranila u UTC
-function sarajevoOffset(): string {
-  const jan = new Date(Date.UTC(2026, 0, 1));
-  const jul = new Date(Date.UTC(2026, 6, 1));
-  const tz  = Intl.DateTimeFormat('en', { timeZone: 'Europe/Sarajevo', timeZoneName: 'shortOffset' })
-    .formatToParts(jul).find(p => p.type === 'timeZoneName')?.value ?? 'GMT+2';
-  const match = tz.match(/([+-]\d+)/);
-  const h = match ? String(Math.abs(parseInt(match[1]))).padStart(2, '0') : '02';
-  const sign = tz.includes('-') ? '-' : '+';
-  return `${sign}${h}:00`;
+// Sarajevo je UTC+2 (CEST ljeto) / UTC+1 (CET zima) — offset računamo za svaki datum posebno
+function sarajevoOffsetMinutes(at: Date): number {
+  const tz = Intl.DateTimeFormat('en', { timeZone: 'Europe/Sarajevo', timeZoneName: 'shortOffset' })
+    .formatToParts(at).find(p => p.type === 'timeZoneName')?.value ?? 'GMT+1';
+  const m = tz.match(/([+-])(\d{1,2})(?::(\d{2}))?/);
+  if (!m) return 0;
+  const mins = parseInt(m[2]) * 60 + parseInt(m[3] ?? '0');
+  return m[1] === '-' ? -mins : mins;
 }
 
-const TZ_OFFSET = sarajevoOffset(); // npr. "+02:00"
+// Pretvara lokalno sarajevsko vrijeme (zidni sat) u tačan UTC trenutak
+export function sarajevoDate(y: number, mo: number, d: number, h = 0, min = 0): Date | null {
+  const asUtc = Date.UTC(y, mo - 1, d, h, min);
+  const date = new Date(asUtc - sarajevoOffsetMinutes(new Date(asUtc)) * 60_000);
+  return isNaN(date.getTime()) ? null : date;
+}
+
+// Početak današnjeg dana po sarajevskom vremenu
+export function sarajevoToday(): Date {
+  const [y, mo, d] = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Sarajevo' })
+    .format(new Date()).split('-').map(Number);
+  return sarajevoDate(y, mo, d)!;
+}
 
 export function parseBosnianDate(text: string): Date | null {
   if (!text) return null;
   const m = text.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})(?:[.,]?\s*u?\s*(\d{1,2})[:\.](\d{2}))?/);
   if (!m) return null;
   const [, d, mo, y, h = '0', min = '0'] = m;
-  // Eksplicitno navedemo Sarajevski offset da se ispravno konvertuje u UTC
-  const date = new Date(`${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}T${h.padStart(2, '0')}:${min}:00${TZ_OFFSET}`);
-  return isNaN(date.getTime()) ? null : date;
+  return sarajevoDate(+y, +mo, +d, +h, +min);
 }
 
 function safeIso(d: Date | null): string | null {
@@ -54,6 +63,12 @@ export async function fetchHtml(url: string): Promise<cheerio.CheerioAPI> {
   return cheerio.load(res.data);
 }
 
+function dedupKey(source: string, item: ParsedItem): string {
+  return createHash('sha256')
+    .update(`${source}|${item.title}|${safeIso(item.startsAt) ?? ''}`)
+    .digest('hex');
+}
+
 export async function saveIncidents(
   items: ParsedItem[],
   type: IncidentType,
@@ -62,11 +77,20 @@ export async function saveIncidents(
   let newCount = 0;
 
   for (const item of items) {
-    const { rows: existing } = await db.query(
-      `SELECT id FROM incidents WHERE title=$1 AND created_at > NOW() - INTERVAL '24 hours'`,
-      [item.title]
+    const key = dedupKey(source, item);
+
+    // Već postoji — samo osvježi last_seen_at (i ponovo aktiviraj ako je objava i dalje na izvoru)
+    const { rowCount: seen } = await db.query(
+      `UPDATE incidents
+          SET last_seen_at = NOW(),
+              status = CASE
+                WHEN status = 'resolved' AND ends_at IS NULL
+                 AND (starts_at IS NULL OR starts_at <= NOW()) THEN 'active'::incident_status
+                ELSE status END
+        WHERE dedup_key = $1`,
+      [key]
     );
-    if (existing.length > 0) continue;
+    if (seen) continue;
 
     // Geocoding je opcionalan — preskačemo ako nema ANTHROPIC_API_KEY
     let addresses: string[] = [item.description || item.title];
@@ -74,17 +98,18 @@ export async function saveIncidents(
     try {
       addresses     = await parseAddressesFromText(item.description || item.title);
       wktMultipoint = await buildPolygonFromAddresses(addresses);
-    } catch {
-      // Nastavljamo bez geolokacije
+    } catch (err) {
+      console.warn(`[${source}] geocoding failed:`, String(err));
     }
 
-    const { rows: inserted } = await db.query<{ id: string; type: string; title: string; description: string }>(
+    // ON CONFLICT štiti od duplikata kad se dva pokretanja preklope
+    const { rows: inserted } = await db.query<{ id: string; type: string; title: string; description: string; status: string }>(
       `INSERT INTO incidents
-         (type, title, description, source_url, affected_area, affected_addresses, starts_at, ends_at, status)
+         (type, title, description, source_url, affected_area, affected_addresses, starts_at, ends_at, status, dedup_key)
        VALUES (
          $1, $2, $3, $4,
          CASE WHEN $5::text IS NOT NULL
-           THEN ST_Buffer(ST_ConvexHull(ST_GeomFromText($5, 4326)), 0.0014)
+           THEN ST_Buffer(ST_ConvexHull(ST_GeomFromText($5, 4326))::geography, 150)::geometry
            ELSE NULL END,
          $6, $7, $8,
          -- Inicijalni status na osnovu vremena
@@ -92,18 +117,31 @@ export async function saveIncidents(
            WHEN $7::timestamptz IS NOT NULL AND $7::timestamptz > NOW() THEN 'scheduled'::incident_status
            WHEN $8::timestamptz IS NOT NULL AND $8::timestamptz < NOW() THEN 'resolved'::incident_status
            ELSE 'active'::incident_status
-         END
+         END,
+         $9
        )
-       RETURNING id, type, title, description`,
+       ON CONFLICT (dedup_key) DO NOTHING
+       RETURNING id, type, title, description, status`,
       [type, item.title, item.description, item.sourceUrl,
        wktMultipoint, addresses,
        safeIso(item.startsAt),
-       safeIso(item.endsAt)]
+       safeIso(item.endsAt),
+       key]
     );
 
+    const incident = inserted[0];
+    if (!incident) continue;
     newCount++;
-    if (inserted[0] && wktMultipoint) {
-      await notifyDevicesInArea(inserted[0]);
+
+    // Ne čekamo Redis — ako nije dostupan, scraping ide dalje
+    publishIncidentEvent('new', incident.id).catch((err) =>
+      console.warn(`[${source}] publish failed:`, String(err))
+    );
+    if (wktMultipoint && incident.status !== 'resolved') {
+      // Greška u slanju notifikacija ne smije prekinuti obradu ostalih obavijesti
+      await notifyDevicesInArea(incident).catch((err) =>
+        console.error(`[${source}] notify failed:`, String(err))
+      );
     }
   }
 

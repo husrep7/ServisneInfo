@@ -31,11 +31,12 @@ export async function websocketRoutes(app: FastifyInstance) {
 }
 
 // Call this from scrapers after inserting a new incident to broadcast to live clients
+let publisher: Redis | null = null;
+
 export async function publishIncidentEvent(
   event: "new" | "resolved",
   incidentId: string
 ) {
-  const pub = new Redis(config.redisUrl);
-  await pub.publish("incidents", JSON.stringify({ type: `incident:${event}`, incidentId }));
-  await pub.quit();
+  publisher ??= new Redis(config.redisUrl);
+  await publisher.publish("incidents", JSON.stringify({ type: `incident:${event}`, incidentId }));
 }
