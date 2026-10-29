@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import type { CSSProperties } from 'react';
 import { fetchIncidents, connectWS } from '../api';
 import { IncidentRow } from '../components/IncidentRow';
 import type { Incident } from '../types';
@@ -80,22 +81,22 @@ export default function Home() {
       <div className="s-header">
         <div>
           <div className="s-header-label">Servisne Informacije</div>
-          <div className="s-header-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="s-header-title header-title-row">
             Sarajevo
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="9" width="4" height="12"/><rect x="10" y="5" width="4" height="16"/><rect x="17" y="12" width="4" height="9"/><line x1="1" y1="21" x2="23" y2="21"/>
             </svg>
           </div>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: 1, fontVariantNumeric: 'tabular-nums' }}>
+        <div className="header-meta">
+          <div className="header-time">
             {now.toLocaleTimeString('bs-BA', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Europe/Sarajevo' })}
           </div>
-          <div style={{ fontSize: 11, color: '#949AA9', marginTop: 2 }}>
+          <div className="header-date">
             {formatSarajevoDate(now)}
           </div>
           {activeCount > 0 && (
-            <span className="badge-live" style={{ fontSize: 10, padding: '3px 8px', marginTop: 4, display: 'inline-block' }}>
+            <span className="badge-live header-live-badge">
               {activeCount} aktivno
             </span>
           )}
@@ -107,16 +108,17 @@ export default function Home() {
       ) : (
         <>
           {/* Stats */}
-          <div className="stats-row" style={{ gridTemplateColumns: 'repeat(2, 1fr)', marginTop: 16 }}>
+          <div className="stats-row stats-row-2">
             {[
-              { label: 'Aktivno',   status: 'active'    as const, count: active.length,    color: '#ED1D1D' },
-              { label: 'Planirano', status: 'scheduled' as const, count: scheduled.length, color: '#F8B900' },
+              { label: 'Aktivno',   status: 'active'    as const, count: active.length,    color: 'var(--live)' },
+              { label: 'Planirano', status: 'scheduled' as const, count: scheduled.length, color: 'var(--gold)' },
             ].map(s => {
               const isSelected = statusFilter === s.status;
               return (
-                <div key={s.label} className="stat-card" {...clickable(() => setStatusFilter(isSelected ? 'all' : s.status))} aria-pressed={isSelected}
-                  style={{ cursor: 'pointer', border: `2px solid ${isSelected ? s.color : 'transparent'}`, transition: 'all .15s' }}>
-                  <div className="stat-number" style={{ color: s.color }}>{s.count}</div>
+                <div key={s.label} className={`stat-card${isSelected ? ' active' : ''}`}
+                  {...clickable(() => setStatusFilter(isSelected ? 'all' : s.status))} aria-pressed={isSelected}
+                  style={{ '--accent': s.color } as CSSProperties}>
+                  <div className="stat-number">{s.count}</div>
                   <div className="stat-label">{s.label}</div>
                 </div>
               );
@@ -149,41 +151,33 @@ export default function Home() {
               const group = displayed.filter(i => i.type === c.type);
               if (group.length === 0) return null;
               const isOpen = !collapsed.has(c.id);
-              const badgeColor = group.some(i => i.status === 'active') ? '#ED1D1D' : '#F8B900';
+              const badgeColor = group.some(i => i.status === 'active') ? 'var(--live)' : 'var(--gold)';
               const activeInGroup = group.filter(i => i.status === 'active').length;
               const scheduledInGroup = group.filter(i => i.status === 'scheduled').length;
 
               return (
                 <div key={c.id}>
-                  <div {...clickable(() => toggleCollapse(c.id))} aria-expanded={isOpen} style={{
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '14px 20px', cursor: 'pointer',
-                    borderTop: '1px solid var(--border)',
-                    background: 'var(--card)', userSelect: 'none',
-                  }}>
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 10, background: c.logoBg,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      overflow: 'hidden', border: '1px solid var(--border)', flexShrink: 0,
-                    }}>
+                  <div className="company-row" {...clickable(() => toggleCollapse(c.id))} aria-expanded={isOpen}
+                    style={{ '--accent': badgeColor } as CSSProperties}>
+                    <div className="company-logo" style={{ width: 36, height: 36, '--company-bg': c.logoBg } as CSSProperties}>
                       <img src={c.logo} alt={c.shortName} style={{ width: 26, height: 26, objectFit: 'contain' }}
                         onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                     </div>
 
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>{c.shortName}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-sec)', marginTop: 1 }}>
-                        {activeInGroup > 0 && <span style={{ color: '#ED1D1D', fontWeight: 700 }}>{activeInGroup} aktivno</span>}
+                    <div className="company-row-body">
+                      <div className="company-row-name">{c.shortName}</div>
+                      <div className="company-row-counts">
+                        {activeInGroup > 0 && <span style={{ color: 'var(--live)', fontWeight: 700 }}>{activeInGroup} aktivno</span>}
                         {activeInGroup > 0 && scheduledInGroup > 0 && <span style={{ color: 'var(--text-muted)' }}> · </span>}
-                        {scheduledInGroup > 0 && <span style={{ color: '#F8B900', fontWeight: 700 }}>{scheduledInGroup} planirano</span>}
+                        {scheduledInGroup > 0 && <span style={{ color: 'var(--gold)', fontWeight: 700 }}>{scheduledInGroup} planirano</span>}
                       </div>
                     </div>
 
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: badgeColor, flexShrink: 0 }} />
+                    <div className="company-row-dot" />
 
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)"
-                      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0,
-                        transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .2s' }}>
+                      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                      className={`company-row-chevron${isOpen ? ' open' : ''}`}>
                       <polyline points="6 9 12 15 18 9" />
                     </svg>
                   </div>

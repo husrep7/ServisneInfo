@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { COMPANIES } from '../types';
 import { useTheme } from '../context/ThemeContext';
@@ -40,7 +41,7 @@ export default function Settings() {
 
       {/* App info */}
       <div className="profile-block">
-        <div className="profile-avatar" style={{ background: '#323B54', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="profile-avatar app-icon">
           <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="9" width="4" height="12"/><rect x="10" y="5" width="4" height="16"/><rect x="17" y="12" width="4" height="9"/><line x1="1" y1="21" x2="23" y2="21"/>
           </svg>
@@ -48,7 +49,7 @@ export default function Settings() {
         <div>
           <div className="profile-name">Servisne Informacije</div>
           <div className="profile-sub">Sarajevo, Bosna i Hercegovina</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
+          <div className="profile-version">
             v1.0.0 · Ažurirano svakih 15 min
           </div>
         </div>
@@ -56,26 +57,16 @@ export default function Settings() {
 
       {/* Dark mode row */}
       <div className="settings-list" style={{ marginTop: 8 }}>
-        <div className="settings-item" {...clickable(toggle)} aria-pressed={theme === 'dark'} style={{ cursor: 'pointer' }}>
-          <div className="settings-item-icon" style={{ background: theme === 'dark' ? '#1a2a4a' : '#F0F4FF', fontSize: 18 }}>
+        <div className="settings-item" {...clickable(toggle)} aria-pressed={theme === 'dark'}>
+          <div className="settings-item-icon theme-icon" style={{ fontSize: 18 }}>
             {theme === 'dark' ? '🌙' : '☀️'}
           </div>
           <div className="settings-item-body">
             <div className="settings-item-label">Izgled</div>
             <div className="settings-item-sub">{theme === 'dark' ? 'Tamni mod' : 'Svjetli mod'}</div>
           </div>
-          <div style={{
-            width: 44, height: 24, borderRadius: 12,
-            background: theme === 'dark' ? 'var(--primary)' : 'var(--border)',
-            position: 'relative', transition: 'background .2s', flexShrink: 0,
-          }}>
-            <div style={{
-              position: 'absolute', top: 2,
-              left: theme === 'dark' ? 22 : 2,
-              width: 20, height: 20, borderRadius: 10,
-              background: '#fff', transition: 'left .2s',
-              boxShadow: '0 1px 4px rgba(0,0,0,.2)',
-            }} />
+          <div className={`toggle-switch${theme === 'dark' ? ' on' : ''}`}>
+            <div className="toggle-switch-dot" />
           </div>
         </div>
       </div>
@@ -90,71 +81,50 @@ export default function Settings() {
           const status = getStatus(c.scraperSource);
           const hasError = status?.error != null;
           const lastRun  = status?.ran_at ? timeAgo(status.ran_at) : '—';
+          const statusColor = hasError ? 'var(--live)' : 'var(--green)';
 
           return (
-            <div key={c.id} style={{
-              borderBottom: '1px solid var(--border)',
-              padding: '14px 16px',
-            }}>
+            <div key={c.id} className="company-card">
               {/* Top row: logo + name + status dot */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-                <div style={{
-                  width: 48, height: 48, borderRadius: 12, flexShrink: 0,
-                  background: c.logoBg, display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', overflow: 'hidden',
-                  border: '1px solid var(--border)',
-                }}>
+              <div className="company-card-top">
+                <div className="company-logo" style={{ width: 48, height: 48, '--company-bg': c.logoBg } as CSSProperties}>
                   <img src={c.logo} alt={c.shortName}
                     style={{ width: 36, height: 36, objectFit: 'contain' }}
                     onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                 </div>
 
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>{c.shortName}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-sec)', marginTop: 1 }}>{c.name}</div>
+                <div className="company-row-body">
+                  <div className="company-card-name">{c.shortName}</div>
+                  <div className="company-card-fullname">{c.name}</div>
                 </div>
 
                 {/* Scraper status indikator */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-                  <div style={{
-                    width: 8, height: 8, borderRadius: '50%',
-                    background: hasError ? '#ED1D1D' : '#96BE4F',
-                    boxShadow: `0 0 6px ${hasError ? '#ED1D1D' : '#96BE4F'}`,
-                  }} />
-                  <span style={{ fontSize: 11, fontWeight: 700, color: hasError ? '#ED1D1D' : '#96BE4F' }}>
+                <div className="company-status" style={{ '--accent': statusColor } as CSSProperties}>
+                  <div className="company-status-dot" />
+                  <span className="company-status-label">
                     {hasError ? 'Greška' : 'Aktivan'}
                   </span>
                 </div>
               </div>
 
               {/* Scraper info */}
-              <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
-                <div style={{ fontSize: 11, color: 'var(--text-sec)' }}>
-                  🕐 Zadnje ažuriranje: <span style={{ fontWeight: 700, color: 'var(--text)' }}>{lastRun}</span>
+              <div className="company-meta-row">
+                <div>
+                  🕐 Zadnje ažuriranje: <b>{lastRun}</b>
                 </div>
                 {status && !hasError && (
-                  <div style={{ fontSize: 11, color: 'var(--text-sec)' }}>
-                    📋 Pronađeno: <span style={{ fontWeight: 700, color: 'var(--text)' }}>{status.incidents_found}</span>
+                  <div>
+                    📋 Pronađeno: <b>{status.incidents_found}</b>
                   </div>
                 )}
               </div>
 
               {/* Action buttons */}
-              <div style={{ display: 'flex', gap: 8 }}>
-                <a href={`tel:${c.phone.replace(/\s/g, '')}`} style={{
-                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  padding: '9px 12px', borderRadius: 10, textDecoration: 'none',
-                  background: 'var(--bg)', border: '1.5px solid var(--border)',
-                  fontSize: 13, fontWeight: 700, color: 'var(--text)',
-                }}>
+              <div className="company-actions">
+                <a href={`tel:${c.phone.replace(/\s/g, '')}`} className="action-btn">
                   📞 {c.phone}
                 </a>
-                <a href={c.url} target="_blank" rel="noreferrer" style={{
-                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  padding: '9px 12px', borderRadius: 10, textDecoration: 'none',
-                  background: 'var(--primary)', border: '1.5px solid var(--primary)',
-                  fontSize: 13, fontWeight: 700, color: '#fff',
-                }}>
+                <a href={c.url} target="_blank" rel="noreferrer" className="action-btn primary">
                   🌐 Web
                 </a>
               </div>
@@ -164,19 +134,12 @@ export default function Settings() {
       </div>
 
       {/* ── PRIJAVI INCIDENT ── */}
-      <div style={{ padding: '20px 16px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <button onClick={() => navigate('/report')} style={{
-          background: '#ED1D1D', color: '#fff',
-          border: 'none', borderRadius: 22, padding: '10px 20px',
-          fontSize: 13, fontWeight: 700, cursor: 'pointer',
-          display: 'inline-flex', alignItems: 'center', gap: 7,
-          fontFamily: 'Quicksand, sans-serif',
-          boxShadow: '0 3px 12px rgba(237,29,29,0.35)',
-        }}>
+      <div className="report-cta-wrap">
+        <button onClick={() => navigate('/report')} className="report-cta-btn">
           <span style={{ fontSize: 13 }}>📢</span>
           Prijavi incident
         </button>
-        <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-sec)', marginTop: 10 }}>
+        <p className="report-cta-hint">
           Primijeti problem koji nije objavljen? Javi nam odmah.
         </p>
       </div>

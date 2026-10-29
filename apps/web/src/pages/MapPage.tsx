@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import type { CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchIncidents } from '../api';
 import type { Incident, IncidentType } from '../types';
@@ -66,7 +67,7 @@ function makeMarkerIcon(incident: Incident): any {
       </div>
       ${isActive ? `<div style="
         position:absolute;top:-4px;right:-4px;width:12px;height:12px;
-        background:#ED1D1D;border-radius:50%;border:2px solid #fff;
+        background:var(--live);border-radius:50%;border:2px solid #fff;
       "></div>` : ''}
     `,
   });
@@ -94,15 +95,15 @@ function makePopup(incident: Incident): string {
         <span style="background:${color};color:#fff;font-size:9px;font-weight:800;
           letter-spacing:1px;padding:2px 8px;border-radius:4px">${TYPE_LABEL[incident.type].toUpperCase()}</span>
         ${incident.status === 'active'
-          ? '<span style="background:#ED1D1D;color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px">● AKTIVNO</span>'
-          : '<span style="background:#F8B900;color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px">PLANIRANO</span>'}
+          ? '<span style="background:var(--live);color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px">● AKTIVNO</span>'
+          : '<span style="background:var(--gold);color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px">PLANIRANO</span>'}
       </div>
       <div style="font-size:14px;font-weight:700;margin-bottom:6px;line-height:1.3">${esc(incident.title)}</div>
-      ${addrs ? `<div style="font-size:12px;color:#666;margin-bottom:6px">📍 ${addrs}</div>` : ''}
-      ${time ? `<div style="font-size:12px;color:#666;margin-bottom:8px">🕐 ${time}${endTime ? ` – ${endTime}` : ''}</div>` : ''}
-      <div style="display:flex;align-items:center;gap:6px;padding-top:8px;border-top:1px solid #f0f0f0">
+      ${addrs ? `<div style="font-size:12px;color:var(--text-sec);margin-bottom:6px">📍 ${addrs}</div>` : ''}
+      ${time ? `<div style="font-size:12px;color:var(--text-sec);margin-bottom:8px">🕐 ${time}${endTime ? ` – ${endTime}` : ''}</div>` : ''}
+      <div style="display:flex;align-items:center;gap:6px;padding-top:8px;border-top:1px solid var(--border)">
         <img src="${company.logo}" style="width:20px;height:20px;object-fit:contain" onerror="this.style.display='none'"/>
-        <span style="font-size:11px;color:#949AA9;font-weight:600">${company.shortName}</span>
+        <span style="font-size:11px;color:var(--text-sec);font-weight:600">${company.shortName}</span>
       </div>
     </div>
   `;
@@ -208,41 +209,29 @@ export default function MapPage() {
           <div className="s-header-label">Servisne Informacije</div>
           <div className="s-header-title" style={{ fontSize: 20 }}>Mapa incidenata</div>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 12, color: '#ED1D1D', fontWeight: 700 }}>● {activeCount} aktivno</div>
-          <div style={{ fontSize: 12, color: '#F8B900', fontWeight: 700, marginTop: 3 }}>◆ {scheduledCount} planirano</div>
+        <div className="header-meta">
+          <div className="map-header-stat" style={{ color: 'var(--live)' }}>● {activeCount} aktivno</div>
+          <div className="map-header-stat" style={{ color: 'var(--gold)', marginTop: 3 }}>◆ {scheduledCount} planirano</div>
         </div>
       </div>
 
       {/* Company type filters */}
-      <div style={{ display: 'flex', gap: 8, padding: '10px 16px', overflowX: 'auto', background: 'var(--card)', borderBottom: '1px solid #F0F0F0' }}>
-        <button onClick={() => setTypeFilter('all')} style={{
-          flexShrink: 0, padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700,
-          background: typeFilter === 'all' ? 'var(--primary)' : 'var(--card)',
-          color: typeFilter === 'all' ? '#fff' : 'var(--text-sec)',
-          border: `1.5px solid ${typeFilter === 'all' ? 'var(--primary)' : 'var(--border)'}`,
-          cursor: 'pointer', fontFamily: 'Quicksand, sans-serif',
-        }}>Sve ({incidents.length})</button>
+      <div className="map-filter-bar">
+        <button onClick={() => setTypeFilter('all')}
+          className={`map-filter-chip all${typeFilter === 'all' ? ' active' : ''}`}>Sve ({incidents.length})</button>
 
         {COMPANIES.map(c => {
           const cnt = incidents.filter(i => i.type === c.type).length;
           if (cnt === 0) return null;
           const isActive = typeFilter === c.type;
           return (
-            <button key={c.id} onClick={() => setTypeFilter(c.type)} style={{
-              flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
-              padding: '4px 12px 4px 5px', borderRadius: 20,
-              border: `1.5px solid ${isActive ? 'var(--primary)' : 'var(--border)'}`,
-              background: isActive ? 'var(--primary)' : 'var(--card)',
-              cursor: 'pointer', fontFamily: 'Quicksand, sans-serif',
-            }}>
-              <div style={{ width: 22, height: 22, borderRadius: 11, background: isActive ? 'rgba(255,255,255,0.2)' : c.logoBg, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <button key={c.id} onClick={() => setTypeFilter(c.type)}
+              className={`map-filter-chip${isActive ? ' active' : ''}`}>
+              <div className="map-filter-logo" style={{ '--company-bg': c.logoBg } as CSSProperties}>
                 <img src={c.logo} alt="" style={{ width: 16, height: 16, objectFit: 'contain' }}
                   onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               </div>
-              <span style={{ fontSize: 12, fontWeight: 700, color: isActive ? '#fff' : 'var(--text)' }}>
-                {c.shortName} ({cnt})
-              </span>
+              <span>{c.shortName} ({cnt})</span>
             </button>
           );
         })}
@@ -252,17 +241,17 @@ export default function MapPage() {
       <div ref={mapRef} style={{ width: '100%', height: 420 }} />
 
       {/* Legenda */}
-      <div style={{ display: 'flex', gap: 16, padding: '10px 16px', background: 'var(--card)', borderTop: '1px solid #F0F0F0', borderBottom: '1px solid #F0F0F0', overflowX: 'auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#949AA9', fontWeight: 600, whiteSpace: 'nowrap' }}>
-          <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ED1D1D' }} /> Aktivno sada
+      <div className="legend-row">
+        <div className="legend-item">
+          <div className="legend-dot" style={{ background: 'var(--live)' }} /> Aktivno sada
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#949AA9', fontWeight: 600, whiteSpace: 'nowrap' }}>
-          <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#F8B900' }} /> Planirano
+        <div className="legend-item">
+          <div className="legend-dot" style={{ background: 'var(--gold)' }} /> Planirano
         </div>
         {(Object.keys(TYPE_ICON) as IncidentType[]).map(type => (
           incidents.some(i => i.type === type) ? (
-            <div key={type} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#949AA9', fontWeight: 600, whiteSpace: 'nowrap' }}>
-              <div style={{ width: 10, height: 10, borderRadius: '50%', background: TYPE_COLOR[type] }} />
+            <div key={type} className="legend-item">
+              <div className="legend-dot" style={{ background: TYPE_COLOR[type] }} />
               {TYPE_ICON[type]} {getCompany(type).shortName}
             </div>
           ) : null
@@ -270,11 +259,9 @@ export default function MapPage() {
       </div>
 
       {/* Lista incidenata */}
-      <div style={{ padding: '12px 16px 4px' }}>
-        <span style={{ fontSize: 11, fontWeight: 800, color: '#949AA9', letterSpacing: 1.5, textTransform: 'uppercase' }}>
-          {filtered.length} incidenta na mapi — klikni za detalje
-        </span>
-      </div>
+      <span className="map-list-label">
+        {filtered.length} incidenta na mapi — klikni za detalje
+      </span>
 
       {filtered.length === 0 ? (
         <div className="empty" style={{ paddingTop: 32 }}>
@@ -291,41 +278,35 @@ export default function MapPage() {
           return (
             <div key={incident.id}
               {...clickable(() => focusIncident(incident))}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
-                background: isSelected ? `${color}18` : 'var(--card)',
-                borderBottom: '1px solid var(--border)',
-                borderLeft: `4px solid ${isSelected ? color : 'transparent'}`,
-                cursor: 'pointer', transition: 'all .15s',
-              }}>
+              className={`map-incident-row${isSelected ? ' selected' : ''}`}
+              style={{ '--accent': color } as CSSProperties}>
               {/* Logo */}
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: company.logoBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div className="map-incident-logo" style={{ '--company-bg': company.logoBg } as CSSProperties}>
                 <img src={company.logo} alt="" style={{ width: 30, height: 30, objectFit: 'contain' }}
                   onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               </div>
 
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                  <span style={{ fontSize: 9, fontWeight: 800, background: color, color: '#fff', padding: '2px 6px', borderRadius: 4, letterSpacing: 1 }}>
+              <div className="map-incident-body">
+                <div className="map-incident-meta">
+                  <span className="inc-type-tag" style={{ background: color }}>
                     {TYPE_ICON[incident.type]} {company.shortName}
                   </span>
                   {incident.status === 'active'
-                    ? <span style={{ fontSize: 9, fontWeight: 800, color: '#ED1D1D' }}>● AKTIVNO</span>
-                    : <span style={{ fontSize: 9, fontWeight: 800, color: '#F8B900' }}>◆ PLANIRANO</span>}
+                    ? <span style={{ fontSize: 9, fontWeight: 800, color: 'var(--live)' }}>● AKTIVNO</span>
+                    : <span style={{ fontSize: 9, fontWeight: 800, color: 'var(--gold)' }}>◆ PLANIRANO</span>}
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div className="map-incident-title">
                   {incident.title}
                 </div>
                 {incident.affected_addresses?.length ? (
-                  <div style={{ fontSize: 11, color: '#949AA9', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div className="map-incident-addr">
                     📍 {incident.affected_addresses.slice(0, 2).join(', ')}
                   </div>
                 ) : null}
               </div>
 
               <button onClick={e => { e.stopPropagation(); navigate(`/incidents/${incident.id}`); }}
-                style={{ flexShrink: 0, fontSize: 11, fontWeight: 700, color: color, background: `${color}15`,
-                  border: 'none', borderRadius: 8, padding: '5px 10px', cursor: 'pointer', fontFamily: 'Quicksand, sans-serif' }}>
+                className="map-incident-detail-btn">
                 Detalji
               </button>
             </div>

@@ -30,7 +30,7 @@ export function IncidentRow({ incident }: { incident: Incident }) {
         </div>
         <div className="inc-row-title">{incident.title}</div>
         <div className="inc-row-sub">
-          <span style={{ fontWeight: 600, color: '#949AA9' }}>{company.shortName}</span>
+          <span style={{ fontWeight: 600 }}>{company.shortName}</span>
           <span>·</span>
           <span>{fmtDate(incident.created_at)}</span>
           {fmtTime(incident.starts_at) && (

@@ -1,15 +1,16 @@
 import { useState } from 'react';
+import type { CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { postReport } from '../api';
 
 type IncidentType = 'water' | 'electricity' | 'gas' | 'heating' | 'internet';
 
 const TYPES: { value: IncidentType; label: string; icon: string; bg: string; color: string }[] = [
-  { value: 'water',       label: 'Vodovod',  icon: '💧', bg: '#DDF3FF', color: '#007AFF' },
-  { value: 'electricity', label: 'Elektro',  icon: '⚡', bg: '#FFF8C6', color: '#ECBD34' },
-  { value: 'gas',         label: 'Gas',      icon: '🔥', bg: '#F7D6DC', color: '#EC5E78' },
-  { value: 'heating',     label: 'Grijanje', icon: '🏠', bg: '#DED6F6', color: '#C281D1' },
-  { value: 'internet',    label: 'Internet', icon: '🌐', bg: '#E4EEEB', color: '#8BB0BA' },
+  { value: 'water',       label: 'Vodovod',  icon: '💧', bg: 'var(--water-bg)',       color: 'var(--water)' },
+  { value: 'electricity', label: 'Elektro',  icon: '⚡', bg: 'var(--electricity-bg)', color: 'var(--electricity)' },
+  { value: 'gas',         label: 'Gas',      icon: '🔥', bg: 'var(--gas-bg)',         color: 'var(--gas)' },
+  { value: 'heating',     label: 'Grijanje', icon: '🏠', bg: 'var(--heating-bg)',     color: 'var(--heating)' },
+  { value: 'internet',    label: 'Internet', icon: '🌐', bg: 'var(--internet-bg)',    color: 'var(--internet)' },
 ];
 
 interface Form {
@@ -64,16 +65,10 @@ export default function Report() {
           <div className="empty-sub" style={{ marginBottom: 32 }}>
             Vaša prijava je zaprimljena. Provjeriće je naš tim i dodati u sistem ukoliko je potvrđena.
           </div>
-          <button onClick={() => setSuccess(false)} style={{
-            background: '#007AFF', color: '#fff', border: 'none', borderRadius: 12,
-            padding: '14px 32px', fontSize: 15, fontWeight: 700, cursor: 'pointer', marginBottom: 12, width: '100%',
-          }}>
+          <button onClick={() => setSuccess(false)} className="btn-primary" style={{ marginBottom: 12 }}>
             Prijavi još jedan incident
           </button>
-          <button onClick={() => navigate('/')} style={{
-            background: 'var(--border)', color: 'var(--text)', border: 'none', borderRadius: 12,
-            padding: '14px 32px', fontSize: 15, fontWeight: 700, cursor: 'pointer', width: '100%',
-          }}>
+          <button onClick={() => navigate('/')} className="btn-secondary">
             Idi na početnu
           </button>
         </div>
@@ -87,34 +82,26 @@ export default function Report() {
     <div className="page">
       {/* Header */}
       <div className="s-header" style={{ paddingBottom: 20 }}>
-        <button onClick={() => navigate(-1)} aria-label="Nazad" style={{
-          color: '#fff', background: 'none', border: 'none', fontSize: 22, cursor: 'pointer',
-          marginRight: 12, opacity: .8, padding: '4px 8px 4px 0',
-        }}>‹</button>
+        <button onClick={() => navigate(-1)} aria-label="Nazad" className="back-btn" style={{ marginRight: 12 }}>‹</button>
         <div>
           <div className="s-header-title" style={{ fontSize: 20 }}>Prijavi incident</div>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} style={{ padding: '20px 20px 40px' }}>
+      <form onSubmit={handleSubmit} className="report-form">
 
         {/* Tip incidenta */}
-        <div style={{ marginBottom: 24 }}>
-          <label style={{ display: 'block', fontSize: 10, fontWeight: 800, letterSpacing: 1.5, color: '#949AA9', textTransform: 'uppercase', marginBottom: 12 }}>
+        <div className="type-select-section">
+          <label className="form-field-label">
             Tip incidenta *
           </label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+          <div className="type-select-grid">
             {TYPES.map(t => (
               <button type="button" key={t.value} aria-pressed={form.type === t.value} onClick={() => setForm(f => ({ ...f, type: t.value }))}
-                style={{
-                  background: form.type === t.value ? t.bg : 'var(--card)',
-                  border: `2px solid ${form.type === t.value ? t.color : 'var(--border)'}`,
-                  borderRadius: 12, padding: '12px 8px', cursor: 'pointer',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                  transition: 'all .15s',
-                }}>
-                <span style={{ fontSize: 24 }}>{t.icon}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: form.type === t.value ? t.color : '#949AA9' }}>
+                className={`type-select-btn${form.type === t.value ? ' active' : ''}`}
+                style={{ '--accent': t.color, '--accent-bg': t.bg } as CSSProperties}>
+                <span className="type-select-icon">{t.icon}</span>
+                <span className="type-select-label">
                   {t.label}
                 </span>
               </button>
@@ -147,15 +134,15 @@ export default function Report() {
             value={form.description}
             onChange={set('description')}
             rows={4}
-            style={{ resize: 'none' }}
+            className="textarea"
           />
         </Field>
 
         {/* Podjeljeno sa --- */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0 20px' }}>
-          <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#C4C4C4', letterSpacing: 1 }}>VAŠI PODACI (opciono)</span>
-          <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+        <div className="form-divider-row">
+          <div className="form-divider-line" />
+          <span className="form-divider-label">VAŠI PODACI (opciono)</span>
+          <div className="form-divider-line" />
         </div>
 
         {/* Ime */}
@@ -170,22 +157,17 @@ export default function Report() {
 
         {/* Error */}
         {error && (
-          <div style={{ background: '#FFF0F0', border: '1px solid #FFDCDC', borderRadius: 10, padding: '12px 14px', marginBottom: 16, fontSize: 13, color: '#ED1D1D', fontWeight: 600 }}>
+          <div className="form-error">
             ⚠️ {error}
           </div>
         )}
 
         {/* Submit */}
-        <button type="submit" disabled={loading} style={{
-          width: '100%', background: loading ? '#C4C4C4' : '#007AFF',
-          color: '#fff', border: 'none', borderRadius: 12, padding: '16px',
-          fontSize: 15, fontWeight: 800, cursor: loading ? 'default' : 'pointer',
-          letterSpacing: .5, transition: 'background .2s',
-        }}>
+        <button type="submit" disabled={loading} className="btn-primary">
           {loading ? 'Slanje...' : '📤 Pošalji prijavu'}
         </button>
 
-        <p style={{ textAlign: 'center', fontSize: 12, color: '#C4C4C4', marginTop: 14, lineHeight: 1.5 }}>
+        <p className="form-hint">
           Prijave prolaze kroz ručnu provjeru prije objavljivanja.
         </p>
       </form>
@@ -193,32 +175,15 @@ export default function Report() {
   );
 }
 
-const fieldStyle: React.CSSProperties = {
-  width: '100%', border: '1.5px solid var(--border)', borderRadius: 10,
-  padding: '12px 14px', fontSize: 14, fontWeight: 500,
-  fontFamily: 'Quicksand, sans-serif', outline: 'none',
-  background: 'var(--bg)', color: 'var(--text)', transition: 'border-color .15s',
-};
-
-function onFocus(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
-  e.target.style.borderColor = 'var(--primary)';
-  e.target.style.background = 'var(--card)';
-}
-function onBlur(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
-  e.target.style.borderColor = 'var(--border)';
-  e.target.style.background = 'var(--bg)';
-}
-
 function Field({ label, children }: { label: string; children: React.ReactElement<React.InputHTMLAttributes<HTMLInputElement> | React.TextareaHTMLAttributes<HTMLTextAreaElement>> }) {
+  const childProps = (children as React.ReactElement<{ className?: string }>).props;
   return (
-    <div style={{ marginBottom: 18 }}>
-      <label style={{ display: 'block', fontSize: 10, fontWeight: 800, letterSpacing: 1.5, color: '#949AA9', textTransform: 'uppercase', marginBottom: 8 }}>
+    <div className="form-field">
+      <label className="form-field-label">
         {label}
       </label>
       {React.cloneElement(children as React.ReactElement<Record<string, unknown>>, {
-        style: { ...fieldStyle, ...(((children as React.ReactElement<{ style?: React.CSSProperties }>).props.style) ?? {}) },
-        onFocus,
-        onBlur,
+        className: `field-input${childProps.className ? ` ${childProps.className}` : ''}`,
       })}
     </div>
   );

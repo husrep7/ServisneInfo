@@ -106,8 +106,12 @@ export const TYPE_ICON: Record<IncidentType, string> = {
   water: '💧', electricity: '⚡', gas: '🔥', heating: '🏠', internet: '🌐',
 };
 export const TYPE_COLOR: Record<IncidentType, string> = {
-  water: '#007AFF', electricity: '#ECBD34', gas: '#EC5E78',
-  heating: '#C281D1', internet: '#8BB0BA',
+  water: 'var(--water)', electricity: 'var(--electricity)', gas: 'var(--gas)',
+  heating: 'var(--heating)', internet: 'var(--internet)',
+};
+export const TYPE_BG: Record<IncidentType, string> = {
+  water: 'var(--water-bg)', electricity: 'var(--electricity-bg)', gas: 'var(--gas-bg)',
+  heating: 'var(--heating-bg)', internet: 'var(--internet-bg)',
 };
 
 const TZ = 'Europe/Sarajevo';

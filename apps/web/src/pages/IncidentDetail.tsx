@@ -100,7 +100,7 @@ export default function IncidentDetail() {
         {incident.description && (
           <div className="detail-section">
             <div className="detail-section-title">Opis</div>
-            <p style={{ fontSize: 14, lineHeight: 1.6, color: '#444' }}>{incident.description}</p>
+            <p className="detail-description">{incident.description}</p>
           </div>
         )}
 

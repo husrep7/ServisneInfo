@@ -44,17 +44,7 @@ export function BottomNav() {
   return (
     <>
       {showFloating && (
-        <button onClick={() => navigate('/report')} style={{
-          position: 'fixed', bottom: 84, left: '50%',
-          transform: 'translateX(-50%)',
-          background: '#ED1D1D', color: '#fff', border: 'none',
-          borderRadius: 28, padding: '12px 22px',
-          fontSize: 14, fontWeight: 800, cursor: 'pointer',
-          boxShadow: '0 4px 16px rgba(237,29,29,.4)',
-          display: 'flex', alignItems: 'center', gap: 8,
-          zIndex: 99, letterSpacing: .3,
-          fontFamily: 'Quicksand, sans-serif', whiteSpace: 'nowrap',
-        }}>
+        <button onClick={() => navigate('/report')} className="floating-report-btn">
           <span style={{ fontSize: 16 }}>📢</span>
           Prijavi incident
         </button>
