@@ -1,10 +1,18 @@
 {
   "name": "servisneinfo",
   "private": true,
-  "workspaces": ["apps/backend", "apps/mobile"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "backend": "npm run dev --workspace=apps/backend",
-    "mobile": "npm run start --workspace=apps/mobile",
+    "backend": "npm run dev -w apps/backend",
+    "mobile": "npm run start -w apps/mobile",
+    "web": "npm run dev -w apps/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down"
   }

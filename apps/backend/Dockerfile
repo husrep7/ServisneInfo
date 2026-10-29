@@ -6,7 +6,11 @@ COPY package.json package-lock.json ./
 # npm workspaces traže package.json svih workspace-ova iz lockfilea
 COPY apps/backend/package.json apps/backend/
 COPY apps/mobile/package.json apps/mobile/
+COPY apps/web/package.json apps/web/
+COPY packages/shared/package.json packages/shared/
 RUN npm ci -w apps/backend --include-workspace-root=false
+# Zajednički tipovi (@servisneinfo/shared) trebaju samo za tsc build
+COPY packages/shared packages/shared
 COPY apps/backend apps/backend
 RUN npm run build -w apps/backend \
  && cp -r apps/backend/src/db/migrations apps/backend/dist/db/migrations
@@ -16,6 +20,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY apps/backend/package.json apps/backend/
 COPY apps/mobile/package.json apps/mobile/
+COPY apps/web/package.json apps/web/
+COPY packages/shared/package.json packages/shared/
 RUN npm ci -w apps/backend --include-workspace-root=false --omit=dev
 
 FROM node:22-alpine
