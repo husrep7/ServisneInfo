@@ -3,7 +3,6 @@ import { isLoggedIn, logout } from './auth';
 import { ADMIN_NAV } from './nav';
 import './admin.css';
 
-
 export default function AdminLayout() {
   const navigate = useNavigate();
 
