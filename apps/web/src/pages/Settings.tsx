@@ -7,6 +7,7 @@ import { fetchScraperStatus } from '../api';
 import type { ScraperStatus } from '../api';
 import { PageHeader } from '../components/PageHeader';
 import { BrandMark, Icon } from '../components/Icon';
+import { MyAddresses } from '../components/MyAddresses';
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -50,6 +51,8 @@ export default function Settings() {
           </span>
           <span className={`toggle${theme === 'dark' ? ' on' : ''}`}><span className="toggle-dot" /></span>
         </button>
+
+        <MyAddresses />
 
         <div className="section-head" style={{ marginTop: 12, marginBottom: 0 }}>
           <h2 className="section-title">Preduzeća i izvori podataka</h2>

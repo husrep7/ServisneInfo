@@ -88,10 +88,17 @@ export default function IncidentDetail() {
             )}
             <div className="detail-company">
               <div className="inc-card-icon"><TypeIcon type={incident.type} size={20} /></div>
-              <div>
-                {company.shortName}
-                <small>{company.name}</small>
-              </div>
+              {incident.origin === 'user' ? (
+                <div>
+                  Prijava korisnika
+                  <small>Potvrđeno na osnovu prijava građana, nije službena obavijest preduzeća {company.shortName}.</small>
+                </div>
+              ) : (
+                <div>
+                  {company.shortName}
+                  <small>{company.name}</small>
+                </div>
+              )}
             </div>
           </div>
 

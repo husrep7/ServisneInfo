@@ -1,12 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { fetchIncidents } from '../api';
+import { Link, useNavigate } from 'react-router-dom';
+import { fetchIncidents, fetchPublicReports } from '../api';
+import type { PublicReport } from '../api';
 import type { Incident, IncidentType } from '../types';
-import { TYPE_COLOR, TYPE_LABEL, COMPANIES, getCompany, fmtWhen, typeStyle } from '../types';
+import { TYPE_COLOR, TYPE_LABEL, TYPE_SERVICE, COMPANIES, getCompany, fmtWhen, typeStyle, reportExpiresIn, timeAgo } from '../types';
+import { ReportCard } from '../components/ReportCard';
+import { isNearMe, useAddresses } from '../addresses';
+import type { SavedAddress } from '../addresses';
 import { typeIconSvg } from '../icons';
 import { PageHeader } from '../components/PageHeader';
 import { IncidentCard } from '../components/IncidentCard';
-import { TypeIcon } from '../components/Icon';
+import { Icon, TypeIcon } from '../components/Icon';
 import { EmptyState, LoadError } from '../components/States';
 
 import L from 'leaflet';
@@ -83,11 +87,43 @@ function makePopup(incident: Incident): string {
   `;
 }
 
+// Nepotvrđena prijava je tačka, ne zona (KTD12); sav tekst prijave ide kroz esc()
+function makeReportIcon(report: PublicReport): L.DivIcon {
+  return L.divIcon({
+    className: '',
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+    popupAnchor: [0, -10],
+    html: `<div class="marker-report" style="background:${TYPE_COLOR[report.type]}"></div>`,
+  });
+}
+
+function makeReportPopup(report: PublicReport): string {
+  return `
+    <div class="popup-badges"><span class="badge unconfirmed">Nepotvrđeno</span></div>
+    <div class="popup-title">${esc(report.title)}</div>
+    ${report.description ? `<div class="popup-line">${esc(report.description)}</div>` : ''}
+    <div class="popup-line">📍 ${esc(report.address)}</div>
+    <div class="popup-line">🕐 Prijavljeno ${esc(timeAgo(report.created_at))}</div>
+    <div class="popup-company">${esc(TYPE_SERVICE[report.type])} · prijava građana · čeka potvrdu, ${esc(reportExpiresIn(report.created_at))}</div>
+  `;
+}
+
+const homeIcon = L.divIcon({ className: '', iconSize: [16, 16], iconAnchor: [8, 8], html: '<div class="marker-home"></div>' });
+
+function makeHomePopup(a: SavedAddress): string {
+  return `<div class="popup-title">${esc(a.label)}</div>${a.label !== a.text ? `<div class="popup-line">${esc(a.text)}</div>` : ''}`;
+}
+
 export default function MapPage() {
   const [incidents, setIncidents]   = useState<Incident[]>([]);
   const [failed, setFailed]         = useState(false);
   const [selected, setSelected]     = useState<Incident | null>(null);
   const [typeFilter, setTypeFilter] = useState<IncidentType | 'all'>('all');
+  const [nearOnly, setNearOnly]     = useState(false);
+  const [reports, setReports]       = useState<PublicReport[]>([]);
+  const [selectedReport, setSelectedReport] = useState<string | null>(null);
+  const addresses = useAddresses();
   const mapRef      = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
   const markersRef  = useRef<Map<string, L.Marker>>(new Map());
@@ -101,6 +137,7 @@ export default function MapPage() {
       ]);
       setIncidents([...active, ...scheduled]);
       setFailed(false);
+      fetchPublicReports().then(setReports).catch(() => setReports([]));
     } catch (err) {
       console.error('Učitavanje incidenata nije uspjelo', err);
       setFailed(true);
@@ -135,7 +172,9 @@ export default function MapPage() {
     markersRef.current.forEach(m => map.removeLayer(m));
     markersRef.current.clear();
 
-    const filtered = typeFilter === 'all' ? incidents : incidents.filter(i => i.type === typeFilter);
+    const filtered = incidents
+      .filter(i => typeFilter === 'all' || i.type === typeFilter)
+      .filter(i => !nearOnly || isNearMe(i, addresses));
     const bounds: [number, number][] = [];
 
     filtered.forEach(incident => {
@@ -150,8 +189,38 @@ export default function MapPage() {
       markersRef.current.set(incident.id, marker);
     });
 
+    // Filter po tipu važi i za prijave (U8 korak 3); "Kod mene" se odnosi na prekide
+    reports
+      .filter(r => r.lat != null && r.lng != null && (typeFilter === 'all' || r.type === typeFilter))
+      .filter(() => !nearOnly)
+      .forEach(report => {
+        const coords: [number, number] = [report.lat!, report.lng!];
+        bounds.push(coords);
+        const marker = L.marker(coords, { icon: makeReportIcon(report) })
+          .bindPopup(makeReportPopup(report), { maxWidth: 280, className: 'si-popup' })
+          .on('click', () => setSelectedReport(report.id))
+          .addTo(map);
+        markersRef.current.set(`r:${report.id}`, marker);
+      });
+
+    addresses.forEach(a => {
+      const marker = L.marker([a.lat, a.lng], { icon: homeIcon, keyboard: false })
+        .bindPopup(makeHomePopup(a), { className: 'si-popup' })
+        .addTo(map);
+      markersRef.current.set(`a:${a.id}`, marker);
+      if (nearOnly) bounds.push([a.lat, a.lng]);
+    });
+
     if (bounds.length > 0) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
-  }, [incidents, typeFilter]);
+  }, [incidents, reports, addresses, typeFilter, nearOnly]);
+
+  const focusReport = (report: PublicReport) => {
+    setSelectedReport(report.id);
+    if (report.lat != null && report.lng != null && mapInstance.current) {
+      mapInstance.current.setView([report.lat, report.lng], 16, { animate: true });
+      markersRef.current.get(`r:${report.id}`)?.openPopup();
+    }
+  };
 
   // Fokus na marker kad se klikne iz liste
   const focusIncident = (incident: Incident) => {
@@ -163,7 +232,11 @@ export default function MapPage() {
     }
   };
 
-  const filtered       = typeFilter === 'all' ? incidents : incidents.filter(i => i.type === typeFilter);
+  const filtered       = incidents
+    .filter(i => typeFilter === 'all' || i.type === typeFilter)
+    .filter(i => !nearOnly || isNearMe(i, addresses));
+  const shownReports   = nearOnly ? [] : reports.filter(r => typeFilter === 'all' || r.type === typeFilter);
+  const nearCount      = incidents.filter(i => isNearMe(i, addresses)).length;
   const activeCount    = incidents.filter(i => i.status === 'active').length;
   const scheduledCount = incidents.filter(i => i.status === 'scheduled').length;
 
@@ -182,6 +255,10 @@ export default function MapPage() {
 
       <div className="container">
         <div className="filter-bar" role="group" aria-label="Filter po preduzeću">
+          <button onClick={() => setNearOnly(n => !n)} aria-pressed={nearOnly}
+            className={`chip-btn${nearOnly ? ' active' : ''}`}>
+            <Icon name="pin" size={16} /> Kod mene {addresses.length > 0 && <span className="chip-count">{nearCount}</span>}
+          </button>
           <button onClick={() => setTypeFilter('all')} aria-pressed={typeFilter === 'all'}
             className={`chip-btn${typeFilter === 'all' ? ' active' : ''}`}>
             Sve <span className="chip-count">{incidents.length}</span>
@@ -223,7 +300,18 @@ export default function MapPage() {
             </div>
 
             {failed && incidents.length === 0 ? <LoadError onRetry={load} />
-              : filtered.length === 0 ? (
+              : nearOnly && addresses.length === 0 ? (
+                <EmptyState icon="pin" tone="neutral" title="Dodajte adresu da vidite prekide kod sebe"
+                  action={<Link to="/settings" className="btn primary">Otvori postavke</Link>}>
+                  Adrese se čuvaju samo u ovom browseru.
+                </EmptyState>
+              )
+              : nearOnly && filtered.length === 0 ? (
+                <EmptyState title="Trenutno nema prekida na vašim adresama">
+                  Nijedna zona prekida ne pokriva vaše sačuvane adrese.
+                </EmptyState>
+              )
+              : filtered.length === 0 && shownReports.length === 0 ? (
                 <EmptyState icon="map" tone="neutral" title="Nema prekida za prikaz">
                   Nema aktivnih ni planiranih prekida na mapi.
                 </EmptyState>
@@ -239,6 +327,12 @@ export default function MapPage() {
                           Detalji
                         </button>
                       } />
+                  ))}
+                  {shownReports.length > 0 && (
+                    <h3 className="section-title" style={{ marginTop: 12, fontSize: 15 }}>Nepotvrđene prijave</h3>
+                  )}
+                  {shownReports.map(r => (
+                    <ReportCard key={r.id} report={r} selected={selectedReport === r.id} onFocus={() => focusReport(r)} />
                   ))}
                 </div>
               )}
