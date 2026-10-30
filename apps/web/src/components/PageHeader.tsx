@@ -17,8 +17,8 @@ export function PageHeader({ title, eyebrow, back, aside, narrow }: {
     <header className="page-header">
       <div className={`container page-header-inner${narrow ? ' narrow' : ''}`}>
         {back && (
-          <button className="icon-btn" onClick={goBack} aria-label="Nazad">
-            <Icon name="back" />
+          <button className="icon-btn back-btn" onClick={goBack} aria-label="Nazad">
+            <Icon name="back" size={18} />
           </button>
         )}
         <div className="page-header-text">

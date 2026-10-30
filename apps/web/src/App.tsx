@@ -7,6 +7,7 @@ import Settings from './pages/Settings';
 import Report from './pages/Report';
 import { ThemeProvider } from './context/ThemeContext';
 import NotFound from './pages/NotFound';
+import { Privacy, Terms } from './pages/Legal';
 import AdminLogin from './admin/AdminLogin';
 import AdminLayout from './admin/AdminLayout';
 import { ADMIN_NAV } from './admin/nav';
@@ -25,6 +26,8 @@ export default function App() {
           <Route path="/map"           element={<MapPage />} />
           <Route path="/report"        element={<Report />} />
           <Route path="/settings"      element={<Settings />} />
+          <Route path="/uslovi"        element={<Terms />} />
+          <Route path="/privatnost"    element={<Privacy />} />
           <Route path="/admin/login"   element={<AdminLogin />} />
           <Route path="/admin"         element={<AdminLayout />}>
             {ADMIN_NAV.map(item => item.path

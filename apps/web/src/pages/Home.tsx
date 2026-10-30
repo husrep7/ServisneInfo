@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { CSSProperties } from 'react';
+import { Link } from 'react-router-dom';
 import { fetchIncidents, connectWS } from '../api';
 import { IncidentCard } from '../components/IncidentCard';
-import { BrandMark, Icon, TypeIcon } from '../components/Icon';
+import { Icon, TypeIcon } from '../components/Icon';
+import { Segmented } from '../components/Segmented';
 import { EmptyState, LoadError, SkeletonList } from '../components/States';
+import { useNow } from '../hooks';
 import type { Incident, IncidentType } from '../types';
-import { COMPANIES, TYPE_SERVICE, plural, typeStyle } from '../types';
+import { COMPANIES, TYPE_SERVICE, dayLabel, fmtTime, getCompany, plural, typeStyle } from '../types';
 
 const DANI    = ['Nedjelja', 'Ponedjeljak', 'Utorak', 'Srijeda', 'Četvrtak', 'Petak', 'Subota'];
 const MJESECI = ['januar', 'februar', 'mart', 'april', 'maj', 'juni', 'juli', 'august', 'septembar', 'oktobar', 'novembar', 'decembar'];
@@ -13,16 +16,19 @@ const SERVICE_ORDER: IncidentType[] = ['water', 'electricity', 'gas', 'heating',
 
 function formatSarajevoDate(date: Date): string {
   const d = new Date(date.toLocaleString('en-US', { timeZone: 'Europe/Sarajevo' }));
-  return `${DANI[d.getDay()]}, ${d.getDate()}. ${MJESECI[d.getMonth()]} ${d.getFullYear()}.`;
+  return `${DANI[d.getDay()]}, ${d.getDate()}. ${MJESECI[d.getMonth()]}`;
 }
 
-function useClock() {
-  const [now, setNow] = useState(new Date());
-  useEffect(() => {
-    const iv = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(iv);
-  }, []);
-  return now;
+// Zaseban sat da se lista ne renderuje svake sekunde
+function BoardClock() {
+  const now  = new Date(useNow(1000));
+  const time = now.toLocaleTimeString('bs-BA', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Europe/Sarajevo' });
+  return (
+    <div className="tile clock-tile">
+      <span className="clock-time mono">{time.slice(0, 5)}<span className="sec">{time.slice(5)}</span></span>
+      <span className="clock-date">{formatSarajevoDate(now)}</span>
+    </div>
+  );
 }
 
 type StatusFilter = 'all' | 'active' | 'scheduled';
@@ -34,7 +40,6 @@ export default function Home() {
   const [failed, setFailed]             = useState(false);
   // Grupe po preduzeću su zatvorene po defaultu
   const [open, setOpen]                 = useState<Set<string>>(new Set());
-  const now = useClock();
 
   const toggleGroup = (id: string) =>
     setOpen(prev => {
@@ -76,132 +81,113 @@ export default function Home() {
   // Default: posljednjih 5 aktivnih; filter Aktivno/Planirano: sve iz te kategorije
   const displayed = statusFilter === 'all' ? active.slice(0, 5)
     : statusFilter === 'active' ? active : scheduled;
+  // Vremenska linija: planirani radovi po vremenu početka
+  const upcoming = scheduled
+    .filter(i => i.starts_at)
+    .sort((a, b) => new Date(a.starts_at!).getTime() - new Date(b.starts_at!).getTime())
+    .slice(0, 4);
 
-  const headline = loading ? 'Učitavanje…'
-    : failed ? 'Podaci trenutno nisu dostupni'
-    : active.length === 0 ? 'Trenutno nema prekida'
-    : `${active.length} ${plural(active.length, 'aktivan prekid', 'aktivna prekida', 'aktivnih prekida')}`;
-  const subline = loading || failed ? '' : scheduled.length > 0
+  const ready = !loading && !failed;
+  const subline = !ready ? '' : scheduled.length > 0
     ? `i ${scheduled.length} ${plural(scheduled.length, 'planiran', 'planirana', 'planiranih')} u narednom periodu`
     : 'Nema najavljenih radova';
 
-  const filterPill = (status: Exclude<StatusFilter, 'all'>, label: string, count: number, color: string) => {
-    const isOn = statusFilter === status;
-    return (
-      <button className={`filter-pill${isOn ? ' active' : ''}`} aria-pressed={isOn}
-        onClick={() => setStatusFilter(isOn ? 'all' : status)}
-        style={{ '--pill-color': color } as CSSProperties}>
-        {label} <span className="count">{count}</span>
-      </button>
-    );
-  };
-
   return (
     <div className="page">
-      <section className="hero">
-        <div className="container">
-          <div className="hero-top">
-            <div className="hero-brand">
-              <BrandMark size={34} />
-              <div>
-                <div className="hero-brand-name">ServisneInfo</div>
-                <div className="hero-brand-city">Kanton Sarajevo</div>
-              </div>
-            </div>
-            <div className="hero-clock">
-              <div className="hero-time">
-                {now.toLocaleTimeString('bs-BA', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Europe/Sarajevo' })}
-              </div>
-              <div className="hero-date">{formatSarajevoDate(now)}</div>
+      <div className="container">
+        <section className="bento">
+          <div className="tile hero-tile">
+            <span className={`live-label mono${ready && active.length === 0 ? ' ok' : ''}`}>Uživo · Kanton Sarajevo</span>
+            <div>
+              {ready && active.length > 0 && <div className="hero-count" key={active.length}>{active.length}</div>}
+              <h1 className="hero-title">
+                {loading ? 'Učitavanje…'
+                  : failed ? 'Podaci trenutno nisu dostupni'
+                  : active.length === 0 ? 'Trenutno nema prekida'
+                  : `${plural(active.length, 'aktivan prekid', 'aktivna prekida', 'aktivnih prekida')} upravo sada`}
+              </h1>
+              {subline && <p className="hero-sub">{subline}</p>}
             </div>
           </div>
 
-          <h1 className="hero-headline hero-live">
-            {!loading && !failed && <span className={`pulse-dot${active.length === 0 ? ' ok' : ''}`} />}
-            {headline}
-          </h1>
-          {subline && <p className="hero-sub">{subline}</p>}
+          <BoardClock />
 
-          {!loading && !failed && (
-            <div className="hero-filters">
-              {filterPill('active',    'Aktivno',   active.length,    'var(--live)')}
-              {filterPill('scheduled', 'Planirano', scheduled.length, 'var(--gold)')}
-            </div>
-          )}
-        </div>
-      </section>
-
-      <div className="container home-layout">
-        <aside className="home-aside section">
-          <div className="section-head"><h2 className="section-title">Stanje usluga</h2></div>
-          <div className="services">
+          {/* Pregled po usluzi — samo prikaz, nije klikabilno */}
+          <ul className="tile svc-tile" aria-label="Stanje usluga">
             {SERVICE_ORDER.map(type => {
               const a = active.filter(i => i.type === type).length;
               const s = scheduled.filter(i => i.type === type).length;
-              const [cls, text] = loading || failed ? ['unknown', '—']
+              const [cls, text] = !ready ? ['unknown', '—']
                 : a > 0 ? ['live', `${a} ${plural(a, 'prekid', 'prekida', 'prekida')}`]
                 : s > 0 ? ['planned', `${s} ${plural(s, 'planiran', 'planirana', 'planiranih')}`]
-                : ['ok', 'Bez prekida'];
+                : ['ok', 'Radi'];
               return (
-                <div key={type} className="service" style={typeStyle(type)}>
-                  <div className="service-icon"><TypeIcon type={type} size={20} /></div>
-                  <div className="service-body">
-                    <div className="service-name">{TYPE_SERVICE[type]}</div>
-                    <div className={`service-status ${cls}`}>{text}</div>
-                  </div>
-                </div>
+                <li key={type} className={`svc ${cls}`} style={typeStyle(type)}>
+                  <span className="svc-dot" />
+                  <span className="svc-name"><TypeIcon type={type} size={15} /> {TYPE_SERVICE[type]}</span>
+                  <span className="svc-status mono">{text}</span>
+                </li>
               );
             })}
-          </div>
-        </aside>
+          </ul>
+        </section>
 
-        <main className="section">
-          <div className="section-head">
+        <section className="section">
+          <div className="list-head">
             <h2 className="section-title">
               {statusFilter === 'active' ? 'Aktivni prekidi'
                 : statusFilter === 'scheduled' ? 'Planirani prekidi'
-                : 'Posljednje obavijesti'}
+                : 'Upravo sada'}
             </h2>
-            {statusFilter !== 'all' && (
-              <button className="section-meta" onClick={() => setStatusFilter('all')}>Prikaži sve</button>
+            {ready && (
+              <Segmented label="Filter obavijesti" value={statusFilter} onChange={setStatusFilter}
+                options={[
+                  { value: 'all',       label: 'Najnovije' },
+                  { value: 'active',    label: 'Aktivno',   count: active.length },
+                  { value: 'scheduled', label: 'Planirano', count: scheduled.length },
+                ]} />
             )}
           </div>
 
           {loading ? <SkeletonList />
             : failed ? <LoadError onRetry={retry} />
             : displayed.length === 0 ? (
-              <EmptyState title={statusFilter === 'scheduled' ? 'Nema planiranih radova' : 'Sve radi normalno'}>
-                {statusFilter === 'scheduled'
-                  ? 'Komunalna preduzeća nisu najavila radove.'
-                  : 'Nema prijavljenih prekida komunalnih usluga u Sarajevu.'}
-              </EmptyState>
+              <div className="tile">
+                <EmptyState title={statusFilter === 'scheduled' ? 'Nema planiranih radova' : 'Sve radi normalno'}>
+                  {statusFilter === 'scheduled'
+                    ? 'Komunalna preduzeća nisu najavila radove.'
+                    : 'Nema prijavljenih prekida komunalnih usluga u Sarajevu.'}
+                </EmptyState>
+              </div>
             ) : statusFilter === 'all' ? (
-              <div className="stack">{displayed.map(i => <IncidentCard key={i.id} incident={i} />)}</div>
+              <div className="card-grid" key="all">{displayed.map((i, n) => <IncidentCard key={i.id} incident={i} index={n} />)}</div>
             ) : (
               // Aktivno/Planirano: grupisano po preduzeću
-              <div className="stack">
-                {COMPANIES.map(c => {
+              <div className="stack" key={statusFilter}>
+                {COMPANIES.map((c, n) => {
                   const group = displayed.filter(i => i.type === c.type);
                   if (group.length === 0) return null;
                   const isOpen = open.has(c.id);
                   const a = group.filter(i => i.status === 'active').length;
                   const s = group.length - a;
                   return (
-                    <div key={c.id} className="group" style={typeStyle(c.type)}>
+                    <div key={c.id} className={`group reveal${isOpen ? ' open' : ''}`}
+                      style={{ ...typeStyle(c.type), '--d': `${n * 50}ms` } as CSSProperties}>
                       <button className="group-head" onClick={() => toggleGroup(c.id)} aria-expanded={isOpen}>
                         <div className="inc-card-icon"><TypeIcon type={c.type} size={22} /></div>
                         <div>
                           <div className="group-name">{c.shortName}</div>
-                          <div className="group-counts">
-                            {a > 0 && <span style={{ color: 'var(--live-text)' }}>{a} aktivno</span>}
-                            {s > 0 && <span style={{ color: 'var(--gold-text)' }}>{s} planirano</span>}
+                          <div className="group-counts mono">
+                            {a > 0 && <span className="t-live">{a} aktivno</span>}
+                            {s > 0 && <span className="t-gold">{s} planirano</span>}
                           </div>
                         </div>
-                        <Icon name="down" size={18} className={`group-chevron${isOpen ? ' open' : ''}`} />
+                        <span className="group-count mono">{group.length}</span>
+                        <Icon name="down" size={18} className="group-chevron" />
                       </button>
                       {isOpen && (
-                        <div className="group-items">
-                          {group.map(i => <IncidentCard key={i.id} incident={i} />)}
+                        <div className="group-items card-grid">
+                          {group.map((i, k) => <IncidentCard key={i.id} incident={i} index={k} />)}
                         </div>
                       )}
                     </div>
@@ -209,7 +195,38 @@ export default function Home() {
                 })}
               </div>
             )}
-        </main>
+        </section>
+
+        <section className="bento bento-bottom section">
+          {ready && upcoming.length > 0 && (
+            <div className="tile soon-tile">
+              <div className="tile-label mono">Uskoro</div>
+              <ol className="soon">
+                {upcoming.map(i => (
+                  <li key={i.id} style={typeStyle(i.type)}>
+                    <Link to={`/incidents/${i.id}`} className="soon-item">
+                      <span className="soon-when mono">{dayLabel(i.starts_at!)} {fmtTime(i.starts_at)}</span>
+                      <span className="soon-title">{i.title}</span>
+                      <span className="soon-company"><TypeIcon type={i.type} size={13} /> {getCompany(i.type).shortName}</span>
+                      <Icon name="arrow" size={16} className="soon-arrow" />
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
+          <div className="tile cta-tile">
+            <div className="tile-label mono">Prijava</div>
+            <div>
+              <div className="cta-title">Nešto ne radi kod vas?</div>
+              <p>Prijavite prekid koji još nije objavljen. Svaku prijavu provjeravamo ručno.</p>
+              <Link to="/report" className="btn accent">
+                <Icon name="plus" size={16} strokeWidth={2.6} /> Prijavi problem <Icon name="arrow" size={16} className="btn-arrow" />
+              </Link>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   );

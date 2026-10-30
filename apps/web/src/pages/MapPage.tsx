@@ -6,7 +6,7 @@ import { TYPE_COLOR, TYPE_LABEL, COMPANIES, getCompany, fmtWhen, typeStyle } fro
 import { typeIconSvg } from '../icons';
 import { PageHeader } from '../components/PageHeader';
 import { IncidentCard } from '../components/IncidentCard';
-import { TypeIcon } from '../components/Icon';
+import { Icon, TypeIcon } from '../components/Icon';
 import { EmptyState, LoadError } from '../components/States';
 
 import L from 'leaflet';
@@ -120,11 +120,14 @@ export default function MapPage() {
       attribution: '© OpenStreetMap contributors',
       maxZoom: 19,
     }).addTo(map);
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
+    L.control.zoom({ position: 'topright' }).addTo(map);
 
     mapInstance.current = map;
+    // Leaflet ne prati promjenu veličine kontejnera (fontovi, sticky layout) — preračunaj sam
+    const ro = new ResizeObserver(() => map.invalidateSize());
+    ro.observe(mapRef.current);
     const markers = markersRef.current;
-    return () => { map.remove(); mapInstance.current = null; markers.clear(); };
+    return () => { ro.disconnect(); map.remove(); mapInstance.current = null; markers.clear(); };
   }, []);
 
   // Ažuriraj markere kad se incidenti/filter promijene
@@ -174,8 +177,8 @@ export default function MapPage() {
         title="Mapa prekida"
         aside={
           <div className="stat-inline">
-            <span style={{ color: 'var(--live-text)' }}>● {activeCount} aktivno</span>
-            <span style={{ color: 'var(--gold-text)' }}>◆ {scheduledCount} planirano</span>
+            <span className="stat-pill live"><span className="dot" /> {activeCount} aktivno</span>
+            <span className="stat-pill gold"><span className="dot" /> {scheduledCount} planirano</span>
           </div>
         }
       />
@@ -229,14 +232,14 @@ export default function MapPage() {
                 </EmptyState>
               ) : (
                 <div className="map-list">
-                  {filtered.map(incident => (
-                    <IncidentCard key={incident.id} incident={incident}
+                  {filtered.map((incident, n) => (
+                    <IncidentCard key={incident.id} incident={incident} index={n}
                       selected={selected?.id === incident.id}
                       onClick={() => focusIncident(incident)}
                       action={
                         <button className="details-btn"
                           onClick={e => { e.stopPropagation(); navigate(`/incidents/${incident.id}`); }}>
-                          Detalji
+                          Detalji <Icon name="arrow" size={13} />
                         </button>
                       } />
                   ))}
