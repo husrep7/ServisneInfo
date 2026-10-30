@@ -1,6 +1,11 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { hashIp, listPublicReports, submitReport } from '../services/reports';
+import { createLimiter } from '../services/rateLimit';
+
+// Grubi limit protiv zatrpavanja baze (#13). Pravi limiti po prijaviocu i IP-u su u bazi (KTD10) i
+// vraćaju 201; ovaj je namjerno visok jer mobilni korisnici dijele IP operatera.
+export const reportFloodLimit = createLimiter({ max: 30, windowMs: 10 * 60_000 });
 
 const CreateSchema = z.object({
   type:         z.enum(['water', 'electricity', 'gas', 'heating', 'internet']),
@@ -22,6 +27,9 @@ const CreateSchema = z.object({
 export async function reportsRoutes(app: FastifyInstance) {
   app.post('/reports', async (req, reply) => {
     const body = CreateSchema.parse(req.body);
+    if (reportFloodLimit.limited(hashIp(req.ip))) {
+      return reply.status(429).send({ error: 'Previše prijava sa ove adrese. Pokušajte kasnije.' });
+    }
     // req.ip poštuje trustProxy (TRUST_PROXY_HOPS), pa X-Forwarded-For izvan povjerljivih hopova ne mijenja hash
     const ipHash = hashIp(req.ip);
 

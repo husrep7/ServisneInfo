@@ -160,6 +160,21 @@ describe('postavke i adrese uređaja nad PostGIS bazom', { skip: skipWithoutDb }
     assert.equal((await settings(id)).reminderMinutes, null);
   });
 
+  test('#13: više od 30 novih uređaja na sat sa iste IP adrese vraća 429, a postojeći uređaj prolazi', async () => {
+    let first = '';
+    for (let i = 0; i < 30; i++) {
+      const res = await app.inject({ method: 'POST', url: '/devices/register', payload: {}, remoteAddress: '10.8.8.8' });
+      assert.equal(res.statusCode, 201);
+      first ||= res.json().tokenId;
+    }
+    const over = await app.inject({ method: 'POST', url: '/devices/register', payload: {}, remoteAddress: '10.8.8.8' });
+    assert.equal(over.statusCode, 429);
+    const existing = await app.inject({
+      method: 'POST', url: '/devices/register', payload: {}, remoteAddress: '10.8.8.8', headers: as(first),
+    });
+    assert.equal(existing.statusCode, 201);
+  });
+
   test('nevažeći tip u listi isključenih vraća 400', async () => {
     const id = await register();
     const res = await patch(id, { mutedTypes: ['water', 'struja'] });

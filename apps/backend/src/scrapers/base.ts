@@ -63,6 +63,12 @@ export async function fetchHtml(url: string): Promise<cheerio.CheerioAPI> {
   return cheerio.load(res.data);
 }
 
+// Efekti novog incidenta — testovi ih zamjenjuju (bez Redisa i Expo-a)
+export const incidentEffects = {
+  publish: (incidentId: string) => publishIncidentEvent('new', incidentId),
+  notify:  (incidentId: string, step: 'announce' | 'start') => notifyIncident(incidentId, step),
+};
+
 export function dedupKey(source: string, item: ParsedItem): string {
   return createHash('sha256')
     .update(`${source}|${item.title}|${safeIso(item.startsAt) ?? ''}`)
@@ -75,6 +81,9 @@ export async function saveIncidents(
   source: string
 ): Promise<ScraperResult> {
   let newCount = 0;
+  // Početak obrade: sve što je izvor i dalje objavio ima last_seen_at >= ovog trenutka,
+  // pa je planiran prekid sa starijim last_seen_at povučen (jobs/withdrawn.ts)
+  const runStartedAt = new Date();
 
   for (const item of items) {
     const key = dedupKey(source, item);
@@ -83,12 +92,16 @@ export async function saveIncidents(
     const { rowCount: seen } = await db.query(
       `UPDATE incidents
           SET last_seen_at = NOW(),
+              source = COALESCE(source, $2),
               status = CASE
                 WHEN status = 'resolved' AND ends_at IS NULL
                  AND (starts_at IS NULL OR starts_at <= NOW()) THEN 'active'::incident_status
+                -- Planiran prekid zatvoren kao povučen, a izvor ga ponovo objavljuje
+                WHEN status = 'resolved' AND starts_at > NOW()
+                 AND (ends_at IS NULL OR ends_at > NOW()) THEN 'scheduled'::incident_status
                 ELSE status END
         WHERE dedup_key = $1`,
-      [key]
+      [key, source]
     );
     if (seen) continue;
 
@@ -105,7 +118,7 @@ export async function saveIncidents(
     // ON CONFLICT štiti od duplikata kad se dva pokretanja preklope
     const { rows: inserted } = await db.query<{ id: string; type: string; title: string; description: string; status: string }>(
       `INSERT INTO incidents
-         (type, title, description, source_url, affected_area, affected_addresses, starts_at, ends_at, status, dedup_key)
+         (type, title, description, source_url, affected_area, affected_addresses, starts_at, ends_at, status, dedup_key, source)
        VALUES (
          $1, $2, $3, $4,
          CASE WHEN $5::text IS NOT NULL
@@ -118,7 +131,7 @@ export async function saveIncidents(
            WHEN $8::timestamptz IS NOT NULL AND $8::timestamptz < NOW() THEN 'resolved'::incident_status
            ELSE 'active'::incident_status
          END,
-         $9
+         $9, $10
        )
        ON CONFLICT (dedup_key) DO NOTHING
        RETURNING id, type, title, description, status`,
@@ -126,7 +139,7 @@ export async function saveIncidents(
        wktMultipoint, addresses,
        safeIso(item.startsAt),
        safeIso(item.endsAt),
-       key]
+       key, source]
     );
 
     const incident = inserted[0];
@@ -134,21 +147,21 @@ export async function saveIncidents(
     newCount++;
 
     // Ne čekamo Redis — ako nije dostupan, scraping ide dalje
-    publishIncidentEvent('new', incident.id).catch((err) =>
+    incidentEffects.publish(incident.id).catch((err) =>
       console.warn(`[${source}] publish failed:`, String(err))
     );
     if (wktMultipoint && incident.status !== 'resolved') {
       // Greška u slanju notifikacija ne smije prekinuti obradu ostalih obavijesti
       // Planirani prekid dobija najavu (R9), a onaj koji se pojavi kao aktivan obavijest o početku (R11)
-      await notifyIncident(incident.id, incident.status === 'scheduled' ? 'announce' : 'start').catch((err) =>
+      await incidentEffects.notify(incident.id, incident.status === 'scheduled' ? 'announce' : 'start').catch((err) =>
         console.error(`[${source}] notify failed:`, String(err))
       );
     }
   }
 
   await db.query(
-    `INSERT INTO scraper_runs (source, incidents_found, incidents_new) VALUES ($1,$2,$3)`,
-    [source, items.length, newCount]
+    `INSERT INTO scraper_runs (source, incidents_found, incidents_new, ran_at) VALUES ($1,$2,$3,$4)`,
+    [source, items.length, newCount, runStartedAt]
   );
 
   console.log(`[${source}] found=${items.length}, new=${newCount}`);

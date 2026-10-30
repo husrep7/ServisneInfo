@@ -57,7 +57,7 @@ const TYPE_GENITIVE: Record<string, string> = {
 // bilo koja adresa u zoni, ili uključena lokacija sa zadnjom tačkom u zoni;
 // bez isključenog tipa, sa push tokenom i bez već poslanog istog koraka.
 // Svaki uređaj se pojavljuje jednom, i kad mu je više adresa u zoni (AE3).
-export async function findRecipients(incidentId: string, step: NotifyStep, onlyDeviceId?: string): Promise<Recipient[]> {
+export async function findRecipients(incidentId: string, step: NotifyStep, deviceIds?: string[]): Promise<Recipient[]> {
   const { rows } = await db.query<Recipient>(
     `SELECT dt.id, dt.expo_token, dt.reminder_minutes,
             (SELECT da.label FROM device_addresses da
@@ -65,7 +65,7 @@ export async function findRecipients(incidentId: string, step: NotifyStep, onlyD
               ORDER BY da.created_at LIMIT 1) AS matched_label
        FROM device_tokens dt, incidents i
       WHERE i.id = $1
-        AND ($3::uuid IS NULL OR dt.id = $3)
+        AND ($3::uuid[] IS NULL OR dt.id = ANY ($3))
         AND i.affected_area IS NOT NULL
         AND dt.expo_token IS NOT NULL
         AND NOT (i.type = ANY (dt.muted_types))
@@ -77,7 +77,7 @@ export async function findRecipients(incidentId: string, step: NotifyStep, onlyD
         )
         AND NOT EXISTS (SELECT 1 FROM sent_notifications sn
                          WHERE sn.incident_id = i.id AND sn.token_id = dt.id AND sn.step = $2)`,
-    [incidentId, step, onlyDeviceId ?? null]
+    [incidentId, step, deviceIds ?? null]
   );
   return rows;
 }
@@ -136,14 +136,20 @@ export function buildMessage(incident: IncidentInfo, step: NotifyStep, recipient
 // Šalje dati korak svim primaocima, najviše jednom po (prekid, uređaj, korak) — R12.
 // Svaka trojka se prvo zauzme upisom u evidenciju; push ide samo zauzetim redovima,
 // a kad Expo vrati grešku, zauzeće se briše da se može pokušati ponovo.
-// onlyDeviceId: samo taj uređaj (npr. kad uđe u zonu sa novom lokacijom)
-export async function notifyIncident(incidentId: string, step: NotifyStep, onlyDeviceId?: string): Promise<number> {
+export interface NotifyOptions {
+  // Samo ovi uređaji (npr. kad uređaj doda adresu ili uđe u zonu, ili za podsjetnik)
+  deviceIds?: string[];
+  // Trenutno vrijeme za tekst poruke; testovi ga kontrolišu
+  now?: Date;
+}
+
+export async function notifyIncident(incidentId: string, step: NotifyStep, opts: NotifyOptions = {}): Promise<number> {
   const { rows: [incident] } = await db.query<IncidentInfo>(
     "SELECT id, type, title, starts_at, ends_at, origin FROM incidents WHERE id = $1", [incidentId]
   );
   if (!incident) return 0;
 
-  const candidates = (await findRecipients(incidentId, step, onlyDeviceId))
+  const candidates = (await findRecipients(incidentId, step, opts.deviceIds))
     .filter((r) => Expo.isExpoPushToken(r.expo_token));
   if (candidates.length === 0) return 0;
 
@@ -158,7 +164,7 @@ export async function notifyIncident(incidentId: string, step: NotifyStep, onlyD
   const recipients = candidates.filter((c) => claimed.has(c.id));
   if (recipients.length === 0) return 0;
 
-  const now = new Date();
+  const now = opts.now ?? new Date();
   const messages: ExpoPushMessage[] = recipients.map((r) => {
     const { title, body } = buildMessage(incident, step, r, now);
     return {

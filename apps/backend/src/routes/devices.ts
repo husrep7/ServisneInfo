@@ -1,7 +1,12 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { db } from "../db";
-import { checkLocationAgainstIncidents } from "../services/geofencing";
+import { checkLocationAgainstIncidents, notifyDeviceForCurrentIncidents } from "../services/geofencing";
+import { createLimiter } from "../services/rateLimit";
+import { hashIp } from "../services/reports";
+
+// Najviše 30 novih uređaja na sat po IP hashu (#13); ponovna registracija postojećeg uređaja se ne broji
+export const registerLimit = createLimiter({ max: 30, windowMs: 60 * 60_000 });
 
 // tokenId ide samo u headeru, nikad u URL-u, jer Fastify loguje URL-ove (KTD1)
 export const DEVICE_HEADER = "x-device-token";
@@ -73,6 +78,7 @@ export async function devicesRoutes(app: FastifyInstance) {
   app.post("/devices/register", async (req, reply) => {
     const body = RegisterSchema.parse(req.body ?? {});
     const existing = headerToken(req);
+
     const client = await db.connect();
     let tokenId: string;
     try {
@@ -90,6 +96,10 @@ export async function devicesRoutes(app: FastifyInstance) {
         ));
       }
       if (!row) {
+        if (registerLimit.limited(hashIp(req.ip))) {
+          await client.query("ROLLBACK");
+          return reply.status(429).send({ error: "Too many registrations, try again later" });
+        }
         ({ rows: [row] } = await client.query<{ id: string }>(
           "INSERT INTO device_tokens DEFAULT VALUES RETURNING id"
         ));
@@ -192,6 +202,9 @@ export async function devicesRoutes(app: FastifyInstance) {
         [id, body.label, body.address, body.lat, body.lng]
       );
       await client.query("COMMIT");
+      // Nova adresa u zoni postojećeg prekida: najava ili početak samo za ovaj uređaj.
+      // Adresa je već sačuvana, pa greška u slanju ne mijenja odgovor.
+      await notifyDeviceForCurrentIncidents(id).catch((err) => req.log.error(`notify failed: ${err}`));
       return reply.status(201).send(row);
     } catch (err) {
       await client.query("ROLLBACK");
