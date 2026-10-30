@@ -9,12 +9,13 @@ import { websocketRoutes } from "./routes/websocket";
 import { reportsRoutes } from "./routes/reports";
 import { startScraperJobs, runAllScrapers } from "./jobs/scraper.job";
 import { startStatusJob } from "./jobs/status.job";
-import { config } from "./config";
+import { config, trustProxyHops } from "./config";
 import { ZodError } from "zod";
 import { requireAdmin } from "./auth";
 import { SCRAPERS } from "./scrapers/index";
 
-const app = Fastify({ logger: true });
+// trustProxy na tačan broj hopova: req.ip je prava adresa klijenta, a lažni X-Forwarded-For se ignoriše (KTD7)
+const app = Fastify({ logger: true, trustProxy: trustProxyHops(config.trustProxyHops) });
 
 async function main() {
   // Neispravan input (zod) je greška klijenta, ne servera

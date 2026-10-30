@@ -14,6 +14,10 @@ cp .env.example apps/backend/.env
 
 Postgres iz docker-compose radi na portu **5434** (`.env.example` je već podešen).
 
+Za prijave građana u produkciji postavite i:
+- `IP_HASH_SALT` — tajna so za hash IP adrese prijavioca (`openssl rand -hex 32`). Sirova IP adresa se ne čuva.
+- `TRUST_PROXY_HOPS` — tačan broj proxyja ispred servera (npr. `1` iza jednog load balancera). Sa `0` server vidi adresu proxyja za sve korisnike; s prevelikim brojem klijent može lažirati IP kroz `X-Forwarded-For`.
+
 ## 2. Pokrenite bazu i Redis
 
 ```bash
@@ -87,7 +91,8 @@ Kontejner pri startu prvo pokrene migracije (`node dist/db/migrate.js`), pa serv
 | POST | /devices/location | Prijava nove lokacije |
 | GET | /ws | WebSocket za live update |
 | GET | /health | Health check |
-| POST | /reports | Prijava problema od korisnika |
+| POST | /reports | Prijava problema od korisnika (uvijek 201, i kad je tiho odbačena) |
+| GET | /reports/public | Nepotvrđene prijave iz zadnjih 6 sati, bez ličnih podataka |
 | GET | /reports | Lista prijava (admin, `Authorization: Bearer $ADMIN_TOKEN`) |
 | POST | /scrape-now | Ručno pokretanje scrapera (admin) |
 

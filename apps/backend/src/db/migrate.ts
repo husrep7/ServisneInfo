@@ -2,8 +2,7 @@ import fs from "fs";
 import path from "path";
 import { db, connectDb } from "./index";
 
-async function migrate() {
-  await connectDb();
+export async function runMigrations() {
   await db.query(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
       name       TEXT PRIMARY KEY,
@@ -35,10 +34,15 @@ async function migrate() {
   }
 
   console.log("✅ Migrations complete");
-  await db.end();
 }
 
-migrate().catch((err) => {
-  console.error("Migration failed:", err);
-  process.exit(1);
-});
+// Pokrenuto kao skripta (npm run migrate); testovi importuju runMigrations
+if (require.main === module) {
+  connectDb()
+    .then(runMigrations)
+    .then(() => db.end())
+    .catch((err) => {
+      console.error("Migration failed:", err);
+      process.exit(1);
+    });
+}
