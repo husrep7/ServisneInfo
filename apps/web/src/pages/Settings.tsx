@@ -61,7 +61,8 @@ export default function Settings() {
         <div className="sources">
           {COMPANIES.map(c => {
             const status   = getStatus(c.scraperSource);
-            const hasError = status?.error != null;
+            const health   = status?.health ?? (status?.error != null ? 'failing' : 'ok');
+            const hasError = health !== 'ok';
             const lastRun  = status?.ran_at ? timeAgo(status.ran_at) : '—';
 
             return (
@@ -75,8 +76,18 @@ export default function Settings() {
                     <div className="source-name">{c.shortName}</div>
                     <div className="source-fullname">{c.name}</div>
                   </div>
-                  <span className={`badge ${hasError ? 'live' : 'resolved'}`}>{hasError ? 'Greška' : 'Aktivan'}</span>
+                  <span className={`badge ${hasError ? 'live' : 'resolved'}`}>
+                    {health === 'failing' ? 'Ne radi' : health === 'empty' ? 'Provjera' : 'Aktivan'}
+                  </span>
                 </div>
+
+                {hasError && (
+                  <p className="source-warning" role="status">
+                    {health === 'failing'
+                      ? 'Preuzimanje obavijesti sa stranice preduzeća trenutno ne radi. Provjerite njihovu stranicu direktno.'
+                      : 'Već neko vrijeme ne nalazimo nove obavijesti sa ove stranice. Moguće je da su promijenili stranicu, pa provjerite i direktno.'}
+                  </p>
+                )}
 
                 <div className="source-meta">
                   <span>Zadnje ažuriranje: <b>{lastRun}</b></span>

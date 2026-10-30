@@ -505,3 +505,5 @@ h1, h2, h3 { font-weight: 800; letter-spacing: -.01em; }
 .addr-item-label { font-weight: 700; }
 .addr-item-text { font-size: 13px; color: var(--text-sec); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notice { font-size: 13px; color: var(--gold-text); background: var(--gold-bg); border-radius: 12px; padding: 10px 12px; }
+
+.source-warning { margin: 10px 0 0; font-size: 13px; line-height: 1.45; color: var(--live-text); background: var(--danger-bg); border: 1px solid var(--danger-border); border-radius: 10px; padding: 8px 10px; }

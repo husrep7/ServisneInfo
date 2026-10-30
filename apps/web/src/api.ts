@@ -37,6 +37,9 @@ export interface ScraperStatus {
   incidents_new:   number;
   error:           string | null;
   ran_at:          string;
+  // Backend #19: failing = uzastopne greške, empty = sumnjivo bez rezultata (stariji backend ne šalje)
+  health?:         'ok' | 'failing' | 'empty';
+  health_detail?:  string | null;
 }
 
 export async function fetchScraperStatus(): Promise<ScraperStatus[]> {

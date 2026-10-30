@@ -42,7 +42,7 @@ export const DEMO_SCRAPERS: ScraperStatus[] = [
   { source: 'Elektrodistribucija EPBiH', incidents_found: 7, incidents_new: 0, error: null, ran_at: new Date(Date.now() - 6 * 60e3).toISOString() },
   { source: 'Sarajevogas',               incidents_found: 1, incidents_new: 0, error: null, ran_at: new Date(Date.now() - 6 * 60e3).toISOString() },
   { source: 'Toplane Sarajevo',          incidents_found: 2, incidents_new: 1, error: null, ran_at: new Date(Date.now() - 6 * 60e3).toISOString() },
-  { source: 'BH Telecom',                incidents_found: 0, incidents_new: 0, error: 'timeout', ran_at: new Date(Date.now() - 40 * 60e3).toISOString() },
+  { source: 'BH Telecom',                incidents_found: 0, incidents_new: 0, error: 'timeout', ran_at: new Date(Date.now() - 40 * 60e3).toISOString(), health: 'failing', health_detail: '3 uzastopne greške: timeout' },
 ];
 
 const M = 60e3;
