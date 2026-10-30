@@ -1,16 +1,21 @@
-import { useState } from 'react';
-import type { CSSProperties } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { postReport } from '../api';
+import { reporterId } from '../addresses';
+import { PinPicker, type LatLng } from '../components/PinPicker';
+import { AddressSearch } from '../components/AddressSearch';
+import type { IncidentType } from '../types';
+import { typeStyle } from '../types';
+import { PageHeader } from '../components/PageHeader';
+import { EmptyState } from '../components/States';
+import { Icon, TypeIcon } from '../components/Icon';
 
-type IncidentType = 'water' | 'electricity' | 'gas' | 'heating' | 'internet';
-
-const TYPES: { value: IncidentType; label: string; icon: string; bg: string; color: string }[] = [
-  { value: 'water',       label: 'Vodovod',  icon: '💧', bg: 'var(--water-bg)',       color: 'var(--water)' },
-  { value: 'electricity', label: 'Elektro',  icon: '⚡', bg: 'var(--electricity-bg)', color: 'var(--electricity)' },
-  { value: 'gas',         label: 'Gas',      icon: '🔥', bg: 'var(--gas-bg)',         color: 'var(--gas)' },
-  { value: 'heating',     label: 'Grijanje', icon: '🏠', bg: 'var(--heating-bg)',     color: 'var(--heating)' },
-  { value: 'internet',    label: 'Internet', icon: '🌐', bg: 'var(--internet-bg)',    color: 'var(--internet)' },
+const TYPES: { value: IncidentType; label: string }[] = [
+  { value: 'water',       label: 'Vodovod'  },
+  { value: 'electricity', label: 'Elektro'  },
+  { value: 'gas',         label: 'Gas'      },
+  { value: 'heating',     label: 'Grijanje' },
+  { value: 'internet',    label: 'Internet' },
 ];
 
 interface Form {
@@ -27,6 +32,8 @@ const EMPTY: Form = { type: '', title: '', description: '', address: '', reporte
 export default function Report() {
   const navigate  = useNavigate();
   const [form, setForm]     = useState<Form>(EMPTY);
+  const [point, setPoint]   = useState<LatLng | null>(null);
+  const [locating, setLocating] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError]     = useState('');
@@ -43,9 +50,10 @@ export default function Report() {
     setError('');
     setLoading(true);
     try {
-      await postReport(form);
+      await postReport({ ...form, type: form.type, ...(point ?? {}), reporterKey: reporterId() });
       setSuccess(true);
       setForm(EMPTY);
+      setPoint(null);
     } catch {
       setError('Greška pri slanju. Pokušajte ponovo.');
     } finally {
@@ -56,21 +64,18 @@ export default function Report() {
   if (success) {
     return (
       <div className="page">
-        <div className="s-header" style={{ paddingBottom: 20 }}>
-          <div className="s-header-title" style={{ fontSize: 20 }}>Prijava poslana</div>
-        </div>
-        <div className="empty" style={{ paddingTop: 60 }}>
-          <div className="empty-icon">✅</div>
-          <div className="empty-title">Hvala na prijavi!</div>
-          <div className="empty-sub" style={{ marginBottom: 32 }}>
-            Vaša prijava je zaprimljena. Provjeriće je naš tim i dodati u sistem ukoliko je potvrđena.
-          </div>
-          <button onClick={() => setSuccess(false)} className="btn-primary" style={{ marginBottom: 12 }}>
-            Prijavi još jedan incident
-          </button>
-          <button onClick={() => navigate('/')} className="btn-secondary">
-            Idi na početnu
-          </button>
+        <PageHeader back title="Prijava poslana" narrow />
+        <div className="container narrow">
+          <EmptyState title="Hvala na prijavi!"
+            action={
+              <div className="stack" style={{ width: '100%', maxWidth: 320 }}>
+                <button onClick={() => setSuccess(false)} className="btn primary block">Prijavi još jedan incident</button>
+                <button onClick={() => navigate('/')} className="btn secondary block">Idi na početnu</button>
+              </div>
+            }>
+            Prijava je odmah vidljiva drugima kao nepotvrđena. Postaje prekid kad je potvrdi moderator
+            ili kad isti problem u blizini prijave još dva korisnika. Ako je niko ne potvrdi, ističe za 6 sati.
+          </EmptyState>
         </div>
       </div>
     );
@@ -80,113 +85,120 @@ export default function Report() {
 
   return (
     <div className="page">
-      {/* Header */}
-      <div className="s-header" style={{ paddingBottom: 20 }}>
-        <button onClick={() => navigate(-1)} aria-label="Nazad" className="back-btn" style={{ marginRight: 12 }}>‹</button>
-        <div>
-          <div className="s-header-title" style={{ fontSize: 20 }}>Prijavi incident</div>
-        </div>
-      </div>
+      <PageHeader back eyebrow="ServisneInfo" title="Prijavi incident" narrow />
 
-      <form onSubmit={handleSubmit} className="report-form">
-
-        {/* Tip incidenta */}
-        <div className="type-select-section">
-          <label className="form-field-label">
-            Tip incidenta *
-          </label>
-          <div className="type-select-grid">
-            {TYPES.map(t => (
-              <button type="button" key={t.value} aria-pressed={form.type === t.value} onClick={() => setForm(f => ({ ...f, type: t.value }))}
-                className={`type-select-btn${form.type === t.value ? ' active' : ''}`}
-                style={{ '--accent': t.color, '--accent-bg': t.bg } as CSSProperties}>
-                <span className="type-select-icon">{t.icon}</span>
-                <span className="type-select-label">
+      <div className="container narrow" style={{ marginTop: 24 }}>
+        <form onSubmit={handleSubmit} className="card form" noValidate>
+          <div>
+            <span className="form-label" id="type-label">Šta ne radi?</span>
+            <div className="type-grid" role="group" aria-labelledby="type-label">
+              {TYPES.map(t => (
+                <button type="button" key={t.value} aria-pressed={form.type === t.value}
+                  onClick={() => setForm(f => ({ ...f, type: t.value }))}
+                  className={`type-btn${form.type === t.value ? ' active' : ''}`}
+                  style={typeStyle(t.value)}>
+                  <span className="type-btn-icon"><TypeIcon type={t.value} size={20} /></span>
+                  <span className="type-btn-check" aria-hidden="true"><Icon name="check" size={14} strokeWidth={2.6} /></span>
                   {t.label}
-                </span>
-              </button>
-            ))}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Kratak opis */}
-        <Field label="Kratak opis problema *">
-          <input
-            placeholder={selectedType ? `npr. Nema ${selectedType.label === 'Elektro' ? 'struje' : selectedType.label === 'Vodovod' ? 'vode' : 'gasa'} od jutros...` : 'Opišite problem u jednoj rečenici'}
-            value={form.title}
-            onChange={set('title')}
-          />
-        </Field>
+          <Field label="Kratak opis problema">
+            <input
+              placeholder={selectedType ? `npr. Nema ${selectedType.label === 'Elektro' ? 'struje' : selectedType.label === 'Vodovod' ? 'vode' : selectedType.label === 'Internet' ? 'interneta' : selectedType.label === 'Grijanje' ? 'grijanja' : 'gasa'} od jutros...` : 'Opišite problem u jednoj rečenici'}
+              value={form.title}
+              onChange={set('title')}
+            />
+          </Field>
 
-        {/* Adresa */}
-        <Field label="Ulica / Adresa *">
-          <input
-            placeholder="npr. Ferhadija 12, Grbavica, Ilidža..."
-            value={form.address}
-            onChange={set('address')}
-          />
-        </Field>
-
-        {/* Opis */}
-        <Field label="Dodatni detalji (opciono)">
-          <textarea
-            placeholder="Kada je počelo? Koliko kuća/stanova je pogođeno? Imate li info o uzroku?"
-            value={form.description}
-            onChange={set('description')}
-            rows={4}
-            className="textarea"
-          />
-        </Field>
-
-        {/* Podjeljeno sa --- */}
-        <div className="form-divider-row">
-          <div className="form-divider-line" />
-          <span className="form-divider-label">VAŠI PODACI (opciono)</span>
-          <div className="form-divider-line" />
-        </div>
-
-        {/* Ime */}
-        <Field label="Ime i prezime">
-          <input placeholder="Kako da vas nazovemo?" value={form.reporterName} onChange={set('reporterName')} />
-        </Field>
-
-        {/* Kontakt */}
-        <Field label="Telefon ili e-mail">
-          <input placeholder="Za potvrdu prijave (neće biti objavljeno)" value={form.contact} onChange={set('contact')} />
-        </Field>
-
-        {/* Error */}
-        {error && (
-          <div className="form-error">
-            ⚠️ {error}
+          <div>
+            <span className="form-label" id="where-label">Gdje? <span className="opt">(pin na mapi pomaže da se prijava potvrdi)</span></span>
+            <div className="stack" role="group" aria-labelledby="where-label">
+              <AddressSearch placeholder="Potražite ulicu i broj"
+                onPick={r => {
+                  setPoint({ lat: r.lat, lng: r.lng });
+                  setForm(f => ({ ...f, address: f.address.trim() ? f.address : r.label }));
+                }} />
+              <PinPicker value={point} onChange={setPoint} label="Mapa: kliknite da postavite mjesto problema" />
+              <div className="pin-help">
+                {point
+                  ? <span><Icon name="check" size={14} /> Pin je postavljen — možete ga prevući.</span>
+                  : <span>Kliknite na mapu da označite mjesto.</span>}
+                {'geolocation' in navigator && (
+                  <button type="button" className="link-btn" disabled={locating}
+                    onClick={() => {
+                      setLocating(true);
+                      navigator.geolocation.getCurrentPosition(
+                        p => { setPoint({ lat: p.coords.latitude, lng: p.coords.longitude }); setLocating(false); },
+                        () => setLocating(false),
+                        { enableHighAccuracy: true, timeout: 10_000 },
+                      );
+                    }}>
+                    {locating ? 'Tražim lokaciju…' : 'Koristi moju lokaciju'}
+                  </button>
+                )}
+                {point && <button type="button" className="link-btn" onClick={() => setPoint(null)}>Ukloni pin</button>}
+              </div>
+            </div>
           </div>
-        )}
 
-        {/* Submit */}
-        <button type="submit" disabled={loading} className="btn-primary">
-          {loading ? 'Slanje...' : '📤 Pošalji prijavu'}
-        </button>
+          <Field label="Ulica / adresa">
+            <input placeholder="npr. Ferhadija 12, Grbavica, Ilidža..." value={form.address} onChange={set('address')} />
+          </Field>
 
-        <p className="form-hint">
-          Prijave prolaze kroz ručnu provjeru prije objavljivanja.
-        </p>
-      </form>
+          <Field label="Dodatni detalji" optional>
+            <textarea
+              placeholder="Kada je počelo? Koliko kuća/stanova je pogođeno? Imate li info o uzroku?"
+              value={form.description}
+              onChange={set('description')}
+              rows={4}
+              className="textarea"
+            />
+          </Field>
+
+          <div className="form-divider">Vaši podaci (opciono)</div>
+          <p className="form-hint" style={{ textAlign: 'left', marginTop: -8 }}>
+            Ime i kontakt vidi samo moderator, nikad se ne objavljuju, i brišu se nakon 7 dana.{' '}
+            <Link to="/privatnost">Više o privatnosti</Link>
+          </p>
+
+          <Field label="Ime i prezime" optional>
+            <input placeholder="Kako da vas nazovemo?" value={form.reporterName} onChange={set('reporterName')} />
+          </Field>
+
+          <Field label="Telefon ili e-mail" optional>
+            <input placeholder="Ako moderator treba nešto provjeriti" value={form.contact} onChange={set('contact')} />
+          </Field>
+
+          {error && (
+            <div className="form-error" role="alert"><Icon name="alert" size={18} /> {error}</div>
+          )}
+
+          <button type="submit" disabled={loading} className={`btn accent block lg${loading ? ' loading' : ''}`}>
+            <Icon name="send" size={17} className="btn-send" /> {loading ? 'Slanje...' : 'Pošalji prijavu'}
+          </button>
+
+          <p className="form-hint">Prijava se odmah prikazuje kao nepotvrđena. Moguće je poslati najviše 3 prijave na sat.</p>
+        </form>
+      </div>
     </div>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactElement<React.InputHTMLAttributes<HTMLInputElement> | React.TextareaHTMLAttributes<HTMLTextAreaElement>> }) {
+function Field({ label, optional, children }: { label: string; optional?: boolean; children: React.ReactElement<React.InputHTMLAttributes<HTMLInputElement> | React.TextareaHTMLAttributes<HTMLTextAreaElement>> }) {
   const childProps = (children as React.ReactElement<{ className?: string }>).props;
   return (
-    <div className="form-field">
-      <label className="form-field-label">
-        {label}
+    <div>
+      <label className="form-label">
+        {label} {optional && <span className="opt">(opciono)</span>}
+        <span style={{ display: 'block', marginTop: 8 }}>
+          {React.cloneElement(children as React.ReactElement<Record<string, unknown>>, {
+            className: `field-input${childProps.className ? ` ${childProps.className}` : ''}`,
+          })}
+        </span>
       </label>
-      {React.cloneElement(children as React.ReactElement<Record<string, unknown>>, {
-        className: `field-input${childProps.className ? ` ${childProps.className}` : ''}`,
-      })}
     </div>
   );
 }
-
-import React from 'react';

@@ -24,4 +24,6 @@ export interface Incident {
   created_at: string;
   area_geojson: PolygonGeometry | null;
   distance_meters: number | null;
+  // 'user' = prekid potvrđen iz prijava građana (R17); stariji backend ga ne šalje
+  origin?: 'official' | 'user';
 }
