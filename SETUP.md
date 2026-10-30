@@ -93,7 +93,12 @@ Kontejner pri startu prvo pokrene migracije (`node dist/db/migrate.js`), pa serv
 | GET | /health | Health check |
 | POST | /reports | Prijava problema od korisnika (uvijek 201, i kad je tiho odbačena) |
 | GET | /reports/public | Nepotvrđene prijave iz zadnjih 6 sati, bez ličnih podataka |
-| GET | /reports | Lista prijava (admin, `Authorization: Bearer $ADMIN_TOKEN`) |
+| GET | /admin/reports?status= | Lista prijava sa ličnim podacima (admin, `Authorization: Bearer $ADMIN_TOKEN`) |
+| POST | /admin/reports/:id/confirm | Potvrda prijave → korisnički prekid + push (admin) |
+| POST | /admin/reports/:id/reject | Odbijanje prijave (admin) |
+| POST | /admin/reports/:id/block | Blokada prijavioca te prijave (admin) |
+| GET / DELETE | /admin/blocked, /admin/blocked/:key | Blokirani prijavioci i deblokada (admin) |
+| POST | /admin/incidents/:id/close | Ručno zatvaranje korisničkog prekida (admin) |
 | POST | /scrape-now | Ručno pokretanje scrapera (admin) |
 
 ## Arhitektura
