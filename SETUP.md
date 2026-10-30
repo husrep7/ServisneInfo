@@ -87,8 +87,6 @@ Kontejner pri startu prvo pokrene migracije (`node dist/db/migrate.js`), pa serv
 |--------|------|------|
 | GET | /incidents | Lista incidenata (opciono: ?lat=&lng=&type=) |
 | GET | /incidents/:id | Detalji incidenta |
-| POST | /devices/register | Registracija push tokena |
-| POST | /devices/location | Prijava nove lokacije |
 | GET | /ws | WebSocket za live update |
 | POST | /devices/register | Registracija uređaja, push token opcion; header `X-Device-Token` veže token na postojeći uređaj |
 | POST | /devices/location | Lokacija uređaja (koristi se samo kad je uključena u postavkama) |
