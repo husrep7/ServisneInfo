@@ -9,8 +9,12 @@ import { ThemeProvider } from './context/ThemeContext';
 import NotFound from './pages/NotFound';
 import AdminLogin from './admin/AdminLogin';
 import AdminLayout from './admin/AdminLayout';
-import { ADMIN_NAV } from './admin/nav';
-import AdminPage from './admin/AdminPage';
+import Dashboard from './admin/pages/Dashboard';
+import Incidents from './admin/pages/Incidents';
+import Reports from './admin/pages/Reports';
+import Blocked from './admin/pages/Blocked';
+import Sources from './admin/pages/Sources';
+import Profile from './admin/pages/Profile';
 import './index.css';
 
 export default function App() {
@@ -26,9 +30,12 @@ export default function App() {
           <Route path="/settings"      element={<><Settings />   <BottomNav /></>} />
           <Route path="/admin/login"   element={<AdminLogin />} />
           <Route path="/admin"         element={<AdminLayout />}>
-            {ADMIN_NAV.map(item => item.path
-              ? <Route key={item.path} path={item.path} element={<AdminPage title={item.label} />} />
-              : <Route key="index" index element={<AdminPage title={item.label} />} />)}
+            <Route index              element={<Dashboard />} />
+            <Route path="prekidi"     element={<Incidents />} />
+            <Route path="prijave"     element={<Reports />} />
+            <Route path="blokirani"   element={<Blocked />} />
+            <Route path="izvori"      element={<Sources />} />
+            <Route path="profil"      element={<Profile />} />
           </Route>
           <Route path="*"              element={<><NotFound />   <BottomNav /></>} />
         </Routes>
