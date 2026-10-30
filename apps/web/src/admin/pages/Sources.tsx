@@ -1,7 +1,7 @@
 import { listScraperRuns } from '../api';
 import { useLoad } from '../useLoad';
 import { fmtDateTime } from '../format';
-import { LoadState, PageTitle } from '../components';
+import { LoadState, PageTitle, RefreshButton } from '../components';
 
 export default function Sources() {
   const { data, error, loading, reload } = useLoad(listScraperRuns);
@@ -9,23 +9,29 @@ export default function Sources() {
 
   return (
     <div className="admin-page">
-      <PageTitle title="Izvori">
-        <button className="admin-secondary" onClick={reload} disabled={loading}>Osvježi</button>
+      <PageTitle title="Izvori" sub="Zadnje pokretanje svakog scrapera">
+        <RefreshButton onClick={reload} loading={loading} />
       </PageTitle>
-      <LoadState loading={loading && !data} error={error} empty={!!data && runs.length === 0} onRetry={reload} />
+      <LoadState loading={loading && !data} error={error} empty={!!data && runs.length === 0} emptyTitle="Scraperi još nisu pokrenuti" onRetry={reload} />
 
       {runs.length > 0 && (
-        <ul className="admin-rows">
+        <ul className="admin-sources">
           {runs.map(r => (
-            <li key={r.source}>
-              <span className={`admin-dot ${r.error ? 'bad' : 'ok'}`} aria-label={r.error ? 'Greška' : 'Radi'} />
-              <span className="admin-row-main">
-                {r.source}
-                <span className="admin-muted">
-                  {r.error ? ` · ${r.error}` : ` · pronađeno ${r.incidents_found}, novih ${r.incidents_new}`}
-                </span>
-              </span>
-              <span className="admin-time">{fmtDateTime(r.ran_at)}</span>
+            <li key={r.source} className={`tile admin-source${r.error ? ' bad' : ''}`}>
+              <div className="admin-source-head">
+                <span className={`admin-dot ${r.error ? 'bad' : 'ok'}`} aria-hidden="true" />
+                <span className="admin-row-title">{r.source}</span>
+                <span className={`admin-badge ${r.error ? 'rejected' : 'confirmed'}`}>{r.error ? 'Greška' : 'Radi'}</span>
+              </div>
+              {r.error
+                ? <p className="admin-source-error">{r.error}</p>
+                : (
+                  <dl className="admin-source-stats">
+                    <div><dt>Pronađeno</dt><dd className="mono">{r.incidents_found}</dd></div>
+                    <div><dt>Novih</dt><dd className="mono">{r.incidents_new}</dd></div>
+                  </dl>
+                )}
+              <span className="admin-time mono">{fmtDateTime(r.ran_at)}</span>
             </li>
           ))}
         </ul>

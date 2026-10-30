@@ -3,16 +3,17 @@ import { Link } from 'react-router-dom';
 import { closeIncident, errorText, listActiveIncidents, type AdminIncident } from '../api';
 import { useLoad } from '../useLoad';
 import { fmtDateTime } from '../format';
-import { LoadState, PageTitle } from '../components';
-import { TYPE_ICON, TYPE_SHORT } from '../../types';
+import { ConfirmDialog, LoadState, Notice, PageTitle, RefreshButton, TypeChip } from '../components';
+import { TYPE_SHORT } from '../../types';
 
 export default function Incidents() {
   const { data, error, loading, reload } = useLoad(listActiveIncidents);
   const [busy, setBusy] = useState<string | null>(null);
+  const [closing, setClosing] = useState<AdminIncident | null>(null);
   const [notice, setNotice] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
 
   async function close(i: AdminIncident) {
-    if (!window.confirm(`Zatvoriti prekid "${i.title}"? Prijave koje ga podržavaju biće označene kao odbijene.`)) return;
+    setClosing(null);
     setBusy(i.id);
     setNotice(null);
     try {
@@ -30,32 +31,39 @@ export default function Incidents() {
 
   return (
     <div className="admin-page">
-      <PageTitle title="Aktivni prekidi">
-        <button className="admin-secondary" onClick={reload} disabled={loading}>Osvježi</button>
+      <PageTitle title="Aktivni prekidi" sub="Ručno se zatvaraju samo prekidi nastali iz prijava građana">
+        <RefreshButton onClick={reload} loading={loading} />
       </PageTitle>
-      {notice && <div className={notice.kind === 'ok' ? 'admin-success' : 'admin-error'} role="status">{notice.text}</div>}
-      <LoadState loading={loading && !data} error={error} empty={!!data && incidents.length === 0} onRetry={reload} />
+      {notice && <Notice kind={notice.kind}>{notice.text}</Notice>}
+      <LoadState loading={loading && !data} error={error} empty={!!data && incidents.length === 0} emptyTitle="Nema aktivnih prekida" onRetry={reload} />
 
       {incidents.length > 0 && (
-        <ul className="admin-rows">
+        <ul className="tile admin-rows">
           {incidents.map(i => (
             <li key={i.id}>
-              <span aria-hidden="true">{TYPE_ICON[i.type]}</span>
+              <TypeChip type={i.type} />
               <span className="admin-row-main">
-                <Link to={`/incidents/${i.id}`}>{i.title}</Link>
-                <span className="admin-muted"> · {TYPE_SHORT[i.type]} · od {fmtDateTime(i.starts_at)}</span>
+                <Link className="admin-row-title" to={`/incidents/${i.id}`}>{i.title}</Link>
+                <span className="admin-muted">{TYPE_SHORT[i.type]} · od {fmtDateTime(i.starts_at)}</span>
               </span>
               {i.origin === 'user'
                 ? (
                   <>
                     <span className="admin-badge pending">prijave građana</span>
-                    <button className="admin-btn danger" disabled={busy === i.id} onClick={() => close(i)}>Zatvori</button>
+                    <button className="btn secondary sm admin-danger-btn" disabled={busy === i.id} onClick={() => setClosing(i)}>Zatvori</button>
                   </>
                 )
-                : <span className="admin-badge muted">službeno</span>}
+                : <span className="admin-badge">službeno</span>}
             </li>
           ))}
         </ul>
+      )}
+
+      {closing && (
+        <ConfirmDialog title="Zatvoriti prekid?" confirmLabel="Zatvori prekid"
+          onConfirm={() => close(closing)} onCancel={() => setClosing(null)}>
+          „{closing.title}“ se zatvara odmah. Prijave koje ga podržavaju biće označene kao odbijene.
+        </ConfirmDialog>
       )}
     </div>
   );

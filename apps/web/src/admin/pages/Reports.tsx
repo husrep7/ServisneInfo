@@ -1,41 +1,45 @@
-import { useCallback, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
 import {
   blockReporter, confirmReport, errorText, listReports, rejectReport,
   type AdminReport, type ReportStatus,
 } from '../api';
 import { useLoad } from '../useLoad';
 import { REPORT_STATUS_BADGE, REPORT_STATUS_LABEL, fmtDateTime } from '../format';
-import { LoadState, PageTitle } from '../components';
+import { ConfirmDialog, LoadState, Notice, PageTitle, RefreshButton, TypeChip } from '../components';
 import ReportsMap from '../ReportsMap';
-import { TYPE_COLOR, TYPE_ICON, TYPE_SHORT } from '../../types';
+import { Segmented } from '../../components/Segmented';
+import { TYPE_SHORT } from '../../types';
 
-const TABS: (ReportStatus | 'all')[] = ['pending', 'confirmed', 'rejected', 'expired', 'all'];
+type Tab = ReportStatus | 'all';
+
+const TABS: Tab[] = ['pending', 'confirmed', 'rejected', 'expired', 'all'];
 
 const SUPPRESSED_LABEL = { blocked: 'blokiran prijavilac', rate_limit: 'preko limita' } as const;
 
 export default function Reports() {
   const [params, setParams] = useSearchParams();
-  const tab = (TABS as string[]).includes(params.get('status') ?? '') ? params.get('status') as ReportStatus | 'all' : 'pending';
+  const tab = (TABS as string[]).includes(params.get('status') ?? '') ? params.get('status') as Tab : 'pending';
   const { data, error, loading, reload } = useLoad(() => listReports(tab), [tab]);
+  const reloadPending = useOutletContext<() => void>();
+  const tabsRef = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [blocking, setBlocking] = useState<AdminReport | null>(null);
   const [notice, setNotice] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   const select = useCallback((id: string) => {
     setSelected(id);
     document.getElementById(`report-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, []);
 
-  async function act(r: AdminReport, action: 'confirm' | 'reject' | 'block') {
-    let reason: string | undefined;
-    if (action === 'block') {
-      const answer = window.prompt(
-        'Blokirati ovog prijavioca? Sve njegove prijave na čekanju nestaju, a nove se tiho odbacuju.\n\nRazlog (opciono):',
-        '',
-      );
-      if (answer === null) return;
-      reason = answer.trim();
-    }
+  // Na uskom ekranu tabovi se skrolaju; izabrani mora ostati vidljiv
+  useEffect(() => {
+    const scroller = tabsRef.current;
+    const active = scroller?.querySelector<HTMLElement>('.seg-opt.on');
+    if (scroller && active) scroller.scrollLeft = active.offsetLeft - (scroller.clientWidth - active.offsetWidth) / 2;
+  }, [tab]);
+
+  async function act(r: AdminReport, action: 'confirm' | 'reject' | 'block', reason?: string) {
     setBusy(r.id);
     setNotice(null);
     try {
@@ -50,6 +54,7 @@ export default function Reports() {
         setNotice({ kind: 'ok', text: 'Prijavilac je blokiran.' });
       }
       await reload();
+      reloadPending();
     } catch (err) {
       setNotice({ kind: 'err', text: errorText(err) });
     } finally {
@@ -61,29 +66,22 @@ export default function Reports() {
 
   return (
     <div className="admin-page">
-      <PageTitle title="Prijave">
-        <button className="admin-secondary" onClick={reload} disabled={loading}>Osvježi</button>
+      <PageTitle title="Prijave" sub="Ime i kontakt prijavioca vidi samo admin">
+        <RefreshButton onClick={reload} loading={loading} />
       </PageTitle>
 
-      <div className="admin-tabs" role="tablist" aria-label="Status prijava">
-        {TABS.map(t => (
-          <button
-            key={t}
-            role="tab"
-            aria-selected={t === tab}
-            className={`admin-tab${t === tab ? ' active' : ''}`}
-            onClick={() => { setSelected(null); setParams(t === 'pending' ? {} : { status: t }); }}
-          >
-            {t === 'all' ? 'Sve' : REPORT_STATUS_LABEL[t]}
-          </button>
-        ))}
+      <div className="admin-seg-scroll" ref={tabsRef}>
+        <Segmented<Tab>
+          label="Status prijava"
+          value={tab}
+          options={TABS.map(t => ({ value: t, label: t === 'all' ? 'Sve' : REPORT_STATUS_LABEL[t] }))}
+          onChange={t => { setSelected(null); setParams(t === 'pending' ? {} : { status: t }); }}
+        />
       </div>
 
-      {notice && (
-        <div className={notice.kind === 'ok' ? 'admin-success' : 'admin-error'} role="status">{notice.text}</div>
-      )}
+      {notice && <Notice kind={notice.kind}>{notice.text}</Notice>}
 
-      <LoadState loading={loading && !data} error={error} empty={!!data && reports.length === 0} onRetry={reload} />
+      <LoadState loading={loading && !data} error={error} empty={!!data && reports.length === 0} emptyTitle="Nema prijava u ovoj grupi" onRetry={reload} />
 
       {reports.length > 0 && (
         <div className="admin-split">
@@ -92,16 +90,15 @@ export default function Reports() {
               <li
                 key={r.id}
                 id={`report-${r.id}`}
-                className={`admin-card${selected === r.id ? ' selected' : ''}`}
+                className={`tile admin-card${selected === r.id ? ' selected' : ''}`}
               >
                 <div className="admin-card-head">
-                  <span className="admin-type" style={{ color: TYPE_COLOR[r.type] }}>
-                    <span aria-hidden="true">{TYPE_ICON[r.type]}</span> {TYPE_SHORT[r.type]}
-                  </span>
+                  <TypeChip type={r.type} />
+                  <span className="admin-type">{TYPE_SHORT[r.type]}</span>
                   <span className={`admin-badge ${r.status}`}>{REPORT_STATUS_BADGE[r.status]}</span>
-                  {r.suppressed && <span className="admin-badge muted">{SUPPRESSED_LABEL[r.suppressed]}</span>}
+                  {r.suppressed && <span className="admin-badge">{SUPPRESSED_LABEL[r.suppressed]}</span>}
                   {r.blocked && <span className="admin-badge rejected">blokiran</span>}
-                  <span className="admin-time">{fmtDateTime(r.created_at)}</span>
+                  <span className="admin-time mono">{fmtDateTime(r.created_at)}</span>
                 </div>
                 <div className="admin-card-title">{r.title}</div>
                 {r.description && <p className="admin-card-text">{r.description}</p>}
@@ -117,15 +114,15 @@ export default function Reports() {
                   <dt>Kontakt</dt><dd>{r.contact || '—'}</dd>
                   <dt>Izvor</dt><dd>{r.channel === 'mobile' ? 'Mobilna' : 'Web'}</dd>
                   {r.incident_id && (
-                    <><dt>Prekid</dt><dd><Link to={`/incidents/${r.incident_id}`}>Otvori</Link>{r.confirmed_by === 'admin' ? ' (potvrdio admin)' : ' (automatski)'}</dd></>
+                    <><dt>Prekid</dt><dd><Link className="admin-link-btn" to={`/incidents/${r.incident_id}`}>Otvori</Link>{r.confirmed_by === 'admin' ? ' (potvrdio admin)' : ' (automatski)'}</dd></>
                   )}
                 </dl>
                 {r.status === 'pending' && (
                   <div className="admin-actions">
-                    <button className="admin-btn ok" disabled={busy === r.id} onClick={() => act(r, 'confirm')}>Potvrdi</button>
-                    <button className="admin-btn" disabled={busy === r.id} onClick={() => act(r, 'reject')}>Odbij</button>
+                    <button className="btn primary sm" disabled={busy === r.id} onClick={() => act(r, 'confirm')}>Potvrdi</button>
+                    <button className="btn secondary sm" disabled={busy === r.id} onClick={() => act(r, 'reject')}>Odbij</button>
                     {!r.blocked && r.reporter_key && !r.reporter_key.startsWith('ip:') && (
-                      <button className="admin-btn danger" disabled={busy === r.id} onClick={() => act(r, 'block')}>Blokiraj prijavioca</button>
+                      <button className="btn secondary sm admin-danger-btn" disabled={busy === r.id} onClick={() => setBlocking(r)}>Blokiraj prijavioca</button>
                     )}
                   </div>
                 )}
@@ -136,6 +133,14 @@ export default function Reports() {
             <ReportsMap reports={reports} selectedId={selected} onSelect={select} />
           </div>
         </div>
+      )}
+
+      {blocking && (
+        <ConfirmDialog title="Blokirati prijavioca?" confirmLabel="Blokiraj" withReason
+          onConfirm={reason => { const r = blocking; setBlocking(null); act(r, 'block', reason); }}
+          onCancel={() => setBlocking(null)}>
+          Sve njegove prijave na čekanju nestaju, a nove se tiho odbacuju.
+        </ConfirmDialog>
       )}
     </div>
   );

@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
+import { Icon } from '../../components/Icon';
+import { plural } from '../../types';
 import { listActiveIncidents, listBlocked, listReports, listScraperRuns } from '../api';
 import { useLoad } from '../useLoad';
 import { fmtDateTime } from '../format';
-import { LoadState, PageTitle } from '../components';
-import { TYPE_ICON } from '../../types';
+import { LoadState, PageTitle, RefreshButton, TypeChip } from '../components';
 
 async function loadOverview() {
   const [pending, incidents, blocked, runs] = await Promise.all([
@@ -20,51 +21,74 @@ export default function Dashboard() {
 
   return (
     <div className="admin-page">
-      <PageTitle title="Dashboard">
-        <button className="admin-secondary" onClick={reload} disabled={loading}>Osvježi</button>
+      <PageTitle title="Dashboard" sub="Šta danas traži pažnju">
+        <RefreshButton onClick={reload} loading={loading} />
       </PageTitle>
       <LoadState loading={loading && !data} error={error} empty={false} onRetry={reload} />
 
       {data && (
-        <>
-          <div className="admin-stats">
-            <Link to="/admin/prijave" className="admin-stat">
-              <span className="admin-stat-value">{data.pending.length}</span>
-              <span className="admin-stat-label">Prijave na čekanju</span>
-            </Link>
-            <Link to="/admin/prekidi" className="admin-stat">
-              <span className="admin-stat-value">{data.incidents.length}</span>
-              <span className="admin-stat-label">Aktivni prekidi</span>
-            </Link>
-            <Link to="/admin/prekidi" className="admin-stat">
-              <span className="admin-stat-value">{userIncidents.length}</span>
-              <span className="admin-stat-label">Od prijava građana</span>
-            </Link>
-            <Link to="/admin/blokirani" className="admin-stat">
-              <span className="admin-stat-value">{data.blocked.length}</span>
-              <span className="admin-stat-label">Blokirani prijavioci</span>
-            </Link>
-            <Link to="/admin/izvori" className={`admin-stat${failing.length ? ' warn' : ''}`}>
-              <span className="admin-stat-value">{data.runs.length - failing.length}/{data.runs.length}</span>
-              <span className="admin-stat-label">Izvori rade</span>
-            </Link>
-          </div>
+        <div className="admin-bento">
+          <Link to="/admin/prijave" className="tile admin-hero">
+            <span className={`live-label${data.pending.length ? '' : ' ok'}`}>
+              {data.pending.length ? 'Čeka pregled' : 'Sve je pregledano'}
+            </span>
+            <span className="hero-count mono">{data.pending.length}</span>
+            <span className="admin-hero-foot">
+              {plural(data.pending.length, 'prijava na čekanju', 'prijave na čekanju', 'prijava na čekanju')}
+              <Icon name="arrow" size={18} className="btn-arrow" />
+            </span>
+          </Link>
 
-          <h2 className="admin-section-title">Najnovije prijave na čekanju</h2>
-          {data.pending.length === 0
-            ? <div className="admin-empty">Nema prijava na čekanju.</div>
-            : (
-              <ul className="admin-rows">
-                {data.pending.slice(0, 5).map(r => (
-                  <li key={r.id}>
-                    <span aria-hidden="true">{TYPE_ICON[r.type]}</span>
-                    <span className="admin-row-main">{r.title}<span className="admin-muted"> · {r.address}</span></span>
-                    <span className="admin-time">{fmtDateTime(r.created_at)}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-        </>
+          <Link to="/admin/prekidi" className="tile admin-stat">
+            <span className="tile-label">Aktivni prekidi</span>
+            <span className="admin-stat-value mono">{data.incidents.length}</span>
+          </Link>
+          <Link to="/admin/prekidi" className="tile admin-stat">
+            <span className="tile-label">Od prijava građana</span>
+            <span className="admin-stat-value mono">{userIncidents.length}</span>
+          </Link>
+          <Link to="/admin/blokirani" className="tile admin-stat">
+            <span className="tile-label">Blokirani prijavioci</span>
+            <span className="admin-stat-value mono">{data.blocked.length}</span>
+          </Link>
+          <Link to="/admin/izvori" className={`tile admin-stat${failing.length ? ' warn' : ''}`}>
+            <span className="tile-label">Izvori rade</span>
+            <span className="admin-stat-value mono">{data.runs.length - failing.length}/{data.runs.length}</span>
+          </Link>
+
+          <section className="tile admin-wide">
+            <h2 className="admin-section-title">Najnovije prijave na čekanju</h2>
+            {data.pending.length === 0
+              ? <p className="admin-muted">Nema prijava na čekanju.</p>
+              : (
+                <ul className="admin-mini-list">
+                  {data.pending.slice(0, 5).map(r => (
+                    <li key={r.id}>
+                      <TypeChip type={r.type} />
+                      <span className="admin-row-main">
+                        <span className="admin-row-title">{r.title}</span>
+                        <span className="admin-muted">{r.address}</span>
+                      </span>
+                      <span className="admin-time mono">{fmtDateTime(r.created_at)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+          </section>
+
+          <section className="tile admin-narrow">
+            <h2 className="admin-section-title">Izvori</h2>
+            <ul className="admin-mini-list">
+              {data.runs.map(r => (
+                <li key={r.source}>
+                  <span className={`admin-dot ${r.error ? 'bad' : 'ok'}`} aria-label={r.error ? 'Greška' : 'Radi'} />
+                  <span className="admin-row-main"><span className="admin-row-title">{r.source}</span></span>
+                  <span className="admin-time mono">{fmtDateTime(r.ran_at)}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
       )}
     </div>
   );
