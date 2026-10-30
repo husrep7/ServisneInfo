@@ -54,38 +54,95 @@ const AddressListSchema = z.array(z.string().min(2).max(200)).max(100);
 // Kanton Sarajevo (lon/lat) — rezultati izvan ovog okvira se odbacuju
 const SARAJEVO_VIEWBOX = "18.10,44.05,18.65,43.70";
 
-// Svi pozivi prema Nominatimu idu kroz jedan red: max 1 req/s po Nominatim ToS,
-// i kad više scrapera radi paralelno
-let nominatimQueue: Promise<unknown> = Promise.resolve();
+// Nominatim ToS: najviše 1 zahtjev u sekundi za cijelu aplikaciju. Svaki poziv (scraper ili
+// pretraga korisnika) rezerviše sljedeći slobodan termin, pa ukupno nikad ne idemo preko limita.
+export const geocodeLimits = {
+  spacingMs:      1100,
+  maxUserPending: 3,   // pretrage korisnika koje smiju čekati na red; preko toga 429
+};
+
+let nextSlot = 0;
+function takeSlot(): Promise<void> {
+  const now = Date.now();
+  const at = Math.max(now, nextSlot);
+  nextSlot = at + geocodeLimits.spacingMs;
+  return new Promise((r) => setTimeout(r, at - now));
+}
+
+// Scraperi idu kroz svoj red, jedan po jedan
+let scraperQueue: Promise<unknown> = Promise.resolve();
+let scraperPending = 0;
 function throttled<T>(fn: () => Promise<T>): Promise<T> {
-  const run = nominatimQueue.then(() => new Promise((r) => setTimeout(r, 1100))).then(fn);
-  nominatimQueue = run.catch(() => null);
+  scraperPending++;
+  const run = scraperQueue.then(takeSlot).then(fn).finally(() => { scraperPending--; });
+  scraperQueue = run.catch(() => null);
   return run;
 }
 
+// HTTP poziv prema Nominatimu; testovi ga zamjenjuju
+export const nominatim = {
+  search: async (params: Record<string, string | number>): Promise<NominatimResult[]> => {
+    const res = await axios.get<NominatimResult[]>("https://nominatim.openstreetmap.org/search", {
+      params,
+      headers: { "User-Agent": "ServisneInfo/1.0 (info@servisneinfo.ba)" },
+      timeout: 5000,
+    });
+    return res.data;
+  },
+};
+
 // Geocode a single address string to [lon, lat] using Nominatim
-async function geocodeAddress(address: string): Promise<[number, number] | null> {
+export async function geocodeAddress(address: string): Promise<[number, number] | null> {
   try {
-    const res = await axios.get<NominatimResult[]>(
-      "https://nominatim.openstreetmap.org/search",
-      {
-        params: {
-          q: `${address}, Sarajevo, Bosnia and Herzegovina`,
-          format: "json",
-          limit: 1,
-          addressdetails: 0,
-          viewbox: SARAJEVO_VIEWBOX,
-          bounded: 1,
-        },
-        headers: { "User-Agent": "ServisneInfo/1.0 (info@servisneinfo.ba)" },
-        timeout: 5000,
-      }
-    );
-    if (res.data.length === 0) return null;
-    const { lon, lat } = res.data[0];
+    const rows = await nominatim.search({
+      q: `${address}, Sarajevo, Bosnia and Herzegovina`,
+      format: "json",
+      limit: 1,
+      addressdetails: 0,
+      viewbox: SARAJEVO_VIEWBOX,
+      bounded: 1,
+    });
+    if (rows.length === 0) return null;
+    const { lon, lat } = rows[0];
     return [parseFloat(lon), parseFloat(lat)];
   } catch {
     return null;
+  }
+}
+
+export class GeocodeBusyError extends Error {}
+
+export interface AddressMatch {
+  label: string;
+  lat:   number;
+  lng:   number;
+}
+
+// Pretraga adrese za korisnike (U2, KTD12), ograničena na Kanton Sarajevo.
+// Dok scraperi geokodiraju, ili kad čeka previše pretraga, odmah vraća GeocodeBusyError (→ 429):
+// pretrage nikad ne čekaju iza scrapera i ne gomilaju red ispred njih.
+let userPending = 0;
+export async function searchAddresses(q: string): Promise<AddressMatch[]> {
+  if (scraperPending > 0 || userPending >= geocodeLimits.maxUserPending) throw new GeocodeBusyError();
+  userPending++;
+  try {
+    await takeSlot();
+    const rows = await nominatim.search({
+      q,
+      format: "jsonv2",
+      limit: 5,
+      countrycodes: "ba",
+      viewbox: SARAJEVO_VIEWBOX,
+      bounded: 1,
+      "accept-language": "bs",
+    });
+    return rows.map((r) => ({
+      label: r.display_name.split(", ").slice(0, 3).join(", "),
+      lat:   parseFloat(r.lat),
+      lng:   parseFloat(r.lon),
+    }));
+  } finally {
+    userPending--;
   }
 }
 

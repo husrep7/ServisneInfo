@@ -2,7 +2,7 @@ import { createHmac, randomBytes } from 'crypto';
 import type { PoolClient } from 'pg';
 import { db } from '../db';
 import { config } from '../config';
-import { notifyDevicesInArea, IncidentRow } from './notifications';
+import { notifyIncident, IncidentRow } from './notifications';
 import { publishIncidentEvent } from '../routes/websocket';
 import type { IncidentType } from '../scrapers/base';
 
@@ -47,7 +47,8 @@ export interface NewReport {
 // Efekti nakon potvrde — testovi ih zamjenjuju da ne šalju push i ne traže Redis.
 // Kad U3 (#43) uvede slanje po koraku, ovdje se mijenja samo notify.
 export const reportEffects = {
-  notify:  (incident: IncidentRow) => notifyDevicesInArea(incident),
+  // Potvrđena prijava je prekid koji je već aktivan (R17), pa ide korak "početak"
+  notify:  (incident: IncidentRow) => notifyIncident(incident.id, 'start').then(() => undefined),
   publish: (event: 'new' | 'resolved', incidentId: string) => publishIncidentEvent(event, incidentId),
 };
 
