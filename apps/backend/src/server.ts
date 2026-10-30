@@ -11,6 +11,7 @@ import { adminRoutes } from "./routes/admin";
 import { geocodeRoutes } from "./routes/geocode";
 import { startScraperJobs, runAllScrapers } from "./jobs/scraper.job";
 import { startStatusJob } from "./jobs/status.job";
+import { startReminderJob } from "./jobs/reminder.job";
 import { config, trustProxyHops } from "./config";
 import { errorHandler } from "./errors";
 import { requireAdmin } from "./auth";
@@ -57,6 +58,7 @@ async function main() {
 
   startScraperJobs();
   startStatusJob();
+  startReminderJob();
 
   await app.listen({ port: config.port, host: "0.0.0.0" });
   console.log(`🚀 Server running on port ${config.port}`);

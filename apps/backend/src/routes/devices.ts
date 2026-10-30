@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { db } from "../db";
-import { checkLocationAgainstIncidents } from "../services/geofencing";
+import { checkLocationAgainstIncidents, notifyDeviceForCurrentIncidents } from "../services/geofencing";
 
 // tokenId ide samo u headeru, nikad u URL-u, jer Fastify loguje URL-ove (KTD1)
 export const DEVICE_HEADER = "x-device-token";
@@ -192,6 +192,9 @@ export async function devicesRoutes(app: FastifyInstance) {
         [id, body.label, body.address, body.lat, body.lng]
       );
       await client.query("COMMIT");
+      // Nova adresa u zoni postojećeg prekida: najava ili početak samo za ovaj uređaj.
+      // Adresa je već sačuvana, pa greška u slanju ne mijenja odgovor.
+      await notifyDeviceForCurrentIncidents(id).catch((err) => req.log.error(`notify failed: ${err}`));
       return reply.status(201).send(row);
     } catch (err) {
       await client.query("ROLLBACK");
