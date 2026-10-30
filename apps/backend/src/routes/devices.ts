@@ -55,6 +55,7 @@ async function requireDevice(req: FastifyRequest, reply: FastifyReply): Promise<
   return null;
 }
 
+// pg ne parsira niz enum vrijednosti (incident_type[]), pa ga upiti vraćaju kao text[]
 interface SettingsRow {
   location_enabled: boolean;
   reminder_minutes: number | null;
@@ -132,7 +133,7 @@ export async function devicesRoutes(app: FastifyInstance) {
     const id = await requireDevice(req, reply);
     if (!id) return;
     const { rows: [r] } = await db.query<SettingsRow>(
-      "SELECT location_enabled, reminder_minutes, muted_types FROM device_tokens WHERE id = $1", [id]
+      "SELECT location_enabled, reminder_minutes, muted_types::text[] AS muted_types FROM device_tokens WHERE id = $1", [id]
     );
     return toSettings(r);
   });
@@ -150,7 +151,7 @@ export async function devicesRoutes(app: FastifyInstance) {
          last_lat = CASE WHEN $2 IS FALSE THEN NULL ELSE last_lat END,
          last_lng = CASE WHEN $2 IS FALSE THEN NULL ELSE last_lng END
        WHERE id = $1
-       RETURNING location_enabled, reminder_minutes, muted_types`,
+       RETURNING location_enabled, reminder_minutes, muted_types::text[] AS muted_types`,
       [id, body.locationEnabled ?? null, body.reminderMinutes !== undefined,
        body.reminderMinutes ?? null, body.mutedTypes ?? null]
     );
