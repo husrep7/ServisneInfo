@@ -10,11 +10,16 @@ export const healthChecks = {
 
 const TIMEOUT_MS = 2000;
 
-function withTimeout(p: Promise<void>): Promise<void> {
-  return Promise.race([
-    p,
-    new Promise<void>((_, reject) => setTimeout(() => reject(new Error("timeout")), TIMEOUT_MS).unref()),
-  ]);
+async function withTimeout(p: Promise<void>): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      p,
+      new Promise<void>((_, reject) => { timer = setTimeout(() => reject(new Error("timeout")), TIMEOUT_MS); }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export async function healthRoutes(app: FastifyInstance) {
