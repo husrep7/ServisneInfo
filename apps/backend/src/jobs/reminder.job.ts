@@ -38,12 +38,13 @@ export async function sendDueReminders(now: Date = new Date()): Promise<number> 
 
 let running = false;
 
-export function startReminderJob(): void {
-  cron.schedule('* * * * *', () => {
+export function startReminderJob(): cron.ScheduledTask {
+  const task = cron.schedule('* * * * *', () => {
     // Jedan prolaz u isto vrijeme; dupli prolaz bi ionako bio odbijen zauzećem u evidenciji
     if (running) return;
     running = true;
     sendDueReminders().catch(console.error).finally(() => { running = false; });
   });
   console.log('✅ Reminder job scheduled every minute');
+  return task;
 }
