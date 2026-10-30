@@ -11,7 +11,7 @@ export async function resetDb(): Promise<void> {
     await runMigrations();
     migrated = true;
   }
-  await db.query('TRUNCATE reports, blocked_reporters, sent_notifications, device_tokens, incidents CASCADE');
+  await db.query('TRUNCATE reports, blocked_reporters, sent_notifications, device_tokens, incidents, scraper_runs, scraper_alerts CASCADE');
 }
 
 export async function closeDb(): Promise<void> {

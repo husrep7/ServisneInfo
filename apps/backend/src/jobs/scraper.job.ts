@@ -1,12 +1,19 @@
 import cron from 'node-cron';
 import { config } from '../config';
 import { SCRAPERS, type ScraperResult } from '../scrapers/index';
+import { checkScraperHealth } from '../services/scraperHealth';
 
 let running: Promise<PromiseSettledResult<ScraperResult>[]> | null = null;
 
 // Jedno pokretanje u isto vrijeme — cron, inicijalni prolaz i /scrape-now dijele isti run
 export function runAllScrapers(): Promise<PromiseSettledResult<ScraperResult>[]> {
-  running ??= Promise.allSettled(SCRAPERS.map(s => s.run())).finally(() => { running = null; });
+  running ??= Promise.allSettled(SCRAPERS.map(s => s.run()))
+    .then(async (results) => {
+      // Nakon svakog prolaza: alarm ako je neki izvor prestao raditi ili se oporavio (#19)
+      await checkScraperHealth().catch((err) => console.error('[Scraper alert] provjera nije uspjela:', err));
+      return results;
+    })
+    .finally(() => { running = null; });
   return running;
 }
 

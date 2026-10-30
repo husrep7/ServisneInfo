@@ -12,6 +12,7 @@ import { geocodeRoutes } from "./routes/geocode";
 import { startScraperJobs, runAllScrapers } from "./jobs/scraper.job";
 import { startStatusJob } from "./jobs/status.job";
 import { startReminderJob } from "./jobs/reminder.job";
+import { computeHealth } from "./services/scraperHealth";
 import { config, trustProxyHops } from "./config";
 import { errorHandler } from "./errors";
 import { requireAdmin } from "./auth";
@@ -44,7 +45,9 @@ async function main() {
       FROM scraper_runs
       ORDER BY source, ran_at DESC
     `);
-    return rows;
+    // health: ok | failing (uzastopne greške) | empty (sumnjivo bez rezultata) — #19
+    const health = new Map((await computeHealth()).map((h) => [h.source, h]));
+    return rows.map((r) => ({ ...r, health: health.get(r.source)?.health ?? "ok", health_detail: health.get(r.source)?.detail ?? null }));
   });
 
   app.post("/scrape-now", { preHandler: requireAdmin }, async () => {

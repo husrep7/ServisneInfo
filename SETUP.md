@@ -16,6 +16,7 @@ Postgres iz docker-compose radi na portu **5434** (`.env.example` je već podeš
 
 Za prijave građana u produkciji postavite i:
 - `IP_HASH_SALT` — tajna so za hash IP adrese prijavioca (`openssl rand -hex 32`). Sirova IP adresa se ne čuva.
+- `ALERT_WEBHOOK_URL` — Slack (ili kompatibilan) incoming webhook za alarm kad neki scraper prestane raditi ili tiho vraća 0 obavijesti. Bez njega se alarm samo loguje.
 - `TRUST_PROXY_HOPS` — tačan broj proxyja ispred servera (npr. `1` iza jednog load balancera). Sa `0` server vidi adresu proxyja za sve korisnike; s prevelikim brojem klijent može lažirati IP kroz `X-Forwarded-For`.
 
 ## 2. Pokrenite bazu i Redis

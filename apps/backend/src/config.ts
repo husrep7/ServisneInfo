@@ -13,6 +13,8 @@ export const config = {
   trustProxyHops: Number(process.env.TRUST_PROXY_HOPS) || 0,
   // Tajna so za hash IP adrese prijavioca; bez nje se generiše nasumična pri svakom startu
   ipHashSalt: process.env.IP_HASH_SALT || "",
+  // Slack-kompatibilan webhook za alarm kad scraper prestane raditi (#19); bez njega samo log
+  alertWebhookUrl: process.env.ALERT_WEBHOOK_URL || "",
 };
 
 // Fastify trustProxy koji vjeruje tačno `hops` najbližih proxyja (hop 0 je adresa konekcije).
