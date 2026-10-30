@@ -90,6 +90,11 @@ Kontejner pri startu prvo pokrene migracije (`node dist/db/migrate.js`), pa serv
 | POST | /devices/register | Registracija push tokena |
 | POST | /devices/location | Prijava nove lokacije |
 | GET | /ws | WebSocket za live update |
+| POST | /devices/register | Registracija uređaja, push token opcion; header `X-Device-Token` veže token na postojeći uređaj |
+| POST | /devices/location | Lokacija uređaja (koristi se samo kad je uključena u postavkama) |
+| GET / PATCH | /devices/me/settings | Postavke uređaja: lokacija, podsjetnik, isključeni tipovi (header `X-Device-Token`) |
+| GET / POST / DELETE | /devices/me/addresses | Adrese uređaja, najviše 5 (header `X-Device-Token`) |
+| GET | /geocode?q= | Pretraga adrese u Kantonu Sarajevo (limit 10/min po IP-u) |
 | GET | /health | Health check |
 | POST | /reports | Prijava problema od korisnika (uvijek 201, i kad je tiho odbačena) |
 | GET | /reports/public | Nepotvrđene prijave iz zadnjih 6 sati, bez ličnih podataka |

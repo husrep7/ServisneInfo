@@ -4,6 +4,11 @@ import { config } from "../config";
 
 const expo = new Expo({ accessToken: config.expoAccessToken || undefined });
 
+// Slanje prema Expo-u; testovi ga zamjenjuju
+export const pushTransport = {
+  send: (messages: ExpoPushMessage[]): Promise<ExpoPushTicket[]> => expo.sendPushNotificationsAsync(messages),
+};
+
 export interface IncidentRow {
   id: string;
   type: string;
@@ -25,7 +30,8 @@ export async function notifyDevicesInArea(incident: IncidentRow): Promise<void> 
   const { rows: tokens } = await db.query<{ id: string; expo_token: string }>(
     `SELECT dt.id, dt.expo_token
      FROM device_tokens dt
-     WHERE dt.last_lat IS NOT NULL
+     WHERE dt.expo_token IS NOT NULL
+       AND dt.last_lat IS NOT NULL
        AND dt.last_lng IS NOT NULL
        AND ST_Within(
          ST_SetSRID(ST_MakePoint(dt.last_lng, dt.last_lat), 4326),
@@ -58,7 +64,7 @@ export async function notifyDevicesInArea(incident: IncidentRow): Promise<void> 
   const tickets: ExpoPushTicket[] = [];
 
   for (const chunk of chunks) {
-    const chunkTickets = await expo.sendPushNotificationsAsync(chunk);
+    const chunkTickets = await pushTransport.send(chunk);
     tickets.push(...chunkTickets);
   }
 
@@ -71,8 +77,8 @@ export async function notifyDevicesInArea(incident: IncidentRow): Promise<void> 
         [incident.id, validTokens[i].id]
       );
     } else if (ticket?.status === "error" && ticket.details?.error === "DeviceNotRegistered") {
-      // Aplikacija je obrisana / token nevažeći — uklanjamo ga
-      await db.query("DELETE FROM device_tokens WHERE id = $1", [validTokens[i].id]);
+      // Aplikacija je obrisana / token nevažeći — brišemo samo push token, adrese i postavke ostaju
+      await db.query("UPDATE device_tokens SET expo_token = NULL WHERE id = $1", [validTokens[i].id]);
     }
   }
 

@@ -8,10 +8,11 @@ import { devicesRoutes } from "./routes/devices";
 import { websocketRoutes } from "./routes/websocket";
 import { reportsRoutes } from "./routes/reports";
 import { adminRoutes } from "./routes/admin";
+import { geocodeRoutes } from "./routes/geocode";
 import { startScraperJobs, runAllScrapers } from "./jobs/scraper.job";
 import { startStatusJob } from "./jobs/status.job";
 import { config, trustProxyHops } from "./config";
-import { ZodError } from "zod";
+import { errorHandler } from "./errors";
 import { requireAdmin } from "./auth";
 import { SCRAPERS } from "./scrapers/index";
 
@@ -19,13 +20,7 @@ import { SCRAPERS } from "./scrapers/index";
 const app = Fastify({ logger: true, trustProxy: trustProxyHops(config.trustProxyHops) });
 
 async function main() {
-  // Neispravan input (zod) je greška klijenta, ne servera
-  app.setErrorHandler((err, _req, reply) => {
-    if (err instanceof ZodError) {
-      return reply.status(400).send({ error: "Invalid request", issues: err.issues });
-    }
-    reply.send(err);
-  });
+  app.setErrorHandler(errorHandler);
 
   await app.register(cors, { origin: "*" });
   await app.register(websocket);
@@ -37,6 +32,7 @@ async function main() {
   await app.register(websocketRoutes);
   await app.register(reportsRoutes);
   await app.register(adminRoutes);
+  await app.register(geocodeRoutes);
 
   app.get("/health", async () => ({ status: "ok", ts: new Date().toISOString() }));
 
