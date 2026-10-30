@@ -164,6 +164,15 @@ describe('prijave nad PostGIS bazom', { skip: skipWithoutDb }, () => {
     assert.equal((await publicReports()).length, 5);
   });
 
+  test('#13: više od 30 prijava sa iste IP adrese za 10 minuta vraća 429', async () => {
+    const codes: number[] = [];
+    for (let i = 0; i < 31; i++) {
+      codes.push((await report({ key: `device-${i}0000`, ip: '10.9.9.9', channel: 'mobile', lat: LAT + i * 0.01 })).statusCode);
+    }
+    assert.deepEqual(codes.slice(0, 30), Array(30).fill(201));
+    assert.equal(codes[30], 429);
+  });
+
   test('AE9: blokiran prijavilac dobija isti odgovor, a prijava nije javna', async () => {
     const ok = await report({ key: 'device-ok00', ip: '10.0.0.1' });
     await db.query(`INSERT INTO blocked_reporters (reporter_key) VALUES ('device-bad0')`);

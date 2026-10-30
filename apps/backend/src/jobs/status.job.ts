@@ -1,9 +1,17 @@
 import cron from 'node-cron';
 import { db } from '../db';
 import { REPORT_RULES } from '../services/reports';
+import { withdrawnSql } from './withdrawn';
 
 // `now` je parametar da bi testovi mogli provjeriti pravila oko ponoći
 export async function updateStatuses(now: Date = new Date()): Promise<void> {
+  // 0. Planiran prekid koji izvor više ne objavljuje je povučen: zatvara se bez podsjetnika
+  //    i ne postaje aktivan (KTD4). Mora ići prije aktiviranja (3.).
+  const { rowCount: r0 } = await db.query(`
+    UPDATE incidents i SET status = 'resolved', updated_at = NOW()
+    WHERE i.status = 'scheduled' AND ${withdrawnSql('i')}
+  `);
+
   // 1. Zatvori incidente kojima je ends_at prošlo (EPBiH isključenja)
   const { rowCount: r1 } = await db.query(`
     UPDATE incidents SET status = 'resolved', updated_at = NOW()
@@ -57,18 +65,19 @@ export async function updateStatuses(now: Date = new Date()): Promise<void> {
       AND last_seen_at < $1::timestamptz - make_interval(hours => $2)
   `, [now, REPORT_RULES.userIncidentHours]);
 
-  const total = (r1 ?? 0) + (r2 ?? 0) + (r3 ?? 0) + (r4 ?? 0) + (r5 ?? 0) + (r6 ?? 0);
+  const total = (r0 ?? 0) + (r1 ?? 0) + (r2 ?? 0) + (r3 ?? 0) + (r4 ?? 0) + (r5 ?? 0) + (r6 ?? 0);
   if (total > 0) {
-    console.log(`[Status job] resolved=${(r1??0)+(r2??0)+(r6??0)}, activated=${r3??0}, scheduled=${r4??0}, reports expired=${r5??0}`);
+    console.log(`[Status job] resolved=${(r1??0)+(r2??0)+(r6??0)}, withdrawn=${r0??0}, activated=${r3??0}, scheduled=${r4??0}, reports expired=${r5??0}`);
   }
 }
 
-export function startStatusJob(): void {
+export function startStatusJob(): cron.ScheduledTask {
   updateStatuses().catch(console.error);
 
-  cron.schedule('*/5 * * * *', () => {
+  const task = cron.schedule('*/5 * * * *', () => {
     updateStatuses().catch(console.error);
   });
 
   console.log('✅ Status job scheduled every 5 minutes');
+  return task;
 }

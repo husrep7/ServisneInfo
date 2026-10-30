@@ -4,7 +4,7 @@ import Fastify, { FastifyInstance } from 'fastify';
 import { errorHandler } from '../../errors';
 import { db } from '../../db';
 import { devicesRoutes, DEVICE_HEADER } from '../devices';
-import { notifyDevicesInArea, pushTransport } from '../../services/notifications';
+import { notifyIncident, pushTransport } from '../../services/notifications';
 import { resetDb, closeDb, skipWithoutDb } from '../../test/db';
 
 const LAT = 43.8563;
@@ -122,7 +122,7 @@ describe('postavke i adrese uređaja nad PostGIS bazom', { skip: skipWithoutDb }
     pushTransport.send = async (messages) =>
       messages.map(() => ({ status: 'error', message: 'gone', details: { error: 'DeviceNotRegistered' } }) as never);
     try {
-      await notifyDevicesInArea(inc);
+      await notifyIncident(inc.id, 'start');
     } finally {
       pushTransport.send = original;
     }
@@ -158,6 +158,21 @@ describe('postavke i adrese uređaja nad PostGIS bazom', { skip: skipWithoutDb }
     // Izmjena drugog polja ne vraća podsjetnik
     await patch(id, { locationEnabled: true });
     assert.equal((await settings(id)).reminderMinutes, null);
+  });
+
+  test('#13: više od 30 novih uređaja na sat sa iste IP adrese vraća 429, a postojeći uređaj prolazi', async () => {
+    let first = '';
+    for (let i = 0; i < 30; i++) {
+      const res = await app.inject({ method: 'POST', url: '/devices/register', payload: {}, remoteAddress: '10.8.8.8' });
+      assert.equal(res.statusCode, 201);
+      first ||= res.json().tokenId;
+    }
+    const over = await app.inject({ method: 'POST', url: '/devices/register', payload: {}, remoteAddress: '10.8.8.8' });
+    assert.equal(over.statusCode, 429);
+    const existing = await app.inject({
+      method: 'POST', url: '/devices/register', payload: {}, remoteAddress: '10.8.8.8', headers: as(first),
+    });
+    assert.equal(existing.statusCode, 201);
   });
 
   test('nevažeći tip u listi isključenih vraća 400', async () => {
