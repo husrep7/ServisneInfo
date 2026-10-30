@@ -4,7 +4,7 @@ import Fastify, { FastifyInstance } from 'fastify';
 import { errorHandler } from '../../errors';
 import { db } from '../../db';
 import { devicesRoutes, DEVICE_HEADER } from '../devices';
-import { notifyDevicesInArea, pushTransport } from '../../services/notifications';
+import { notifyIncident, pushTransport } from '../../services/notifications';
 import { resetDb, closeDb, skipWithoutDb } from '../../test/db';
 
 const LAT = 43.8563;
@@ -122,7 +122,7 @@ describe('postavke i adrese uređaja nad PostGIS bazom', { skip: skipWithoutDb }
     pushTransport.send = async (messages) =>
       messages.map(() => ({ status: 'error', message: 'gone', details: { error: 'DeviceNotRegistered' } }) as never);
     try {
-      await notifyDevicesInArea(inc);
+      await notifyIncident(inc.id, 'start');
     } finally {
       pushTransport.send = original;
     }

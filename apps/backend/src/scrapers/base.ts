@@ -3,7 +3,7 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { db } from '../db';
 import { parseAddressesFromText, buildPolygonFromAddresses } from '../services/geocoding';
-import { notifyDevicesInArea } from '../services/notifications';
+import { notifyIncident } from '../services/notifications';
 import { publishIncidentEvent } from '../routes/websocket';
 import type { ScraperResult } from './index';
 
@@ -139,7 +139,8 @@ export async function saveIncidents(
     );
     if (wktMultipoint && incident.status !== 'resolved') {
       // Greška u slanju notifikacija ne smije prekinuti obradu ostalih obavijesti
-      await notifyDevicesInArea(incident).catch((err) =>
+      // Planirani prekid dobija najavu (R9), a onaj koji se pojavi kao aktivan obavijest o početku (R11)
+      await notifyIncident(incident.id, incident.status === 'scheduled' ? 'announce' : 'start').catch((err) =>
         console.error(`[${source}] notify failed:`, String(err))
       );
     }
