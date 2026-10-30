@@ -17,10 +17,10 @@ export function runAllScrapers(): Promise<PromiseSettledResult<ScraperResult>[]>
   return running;
 }
 
-export function startScraperJobs() {
+export function startScraperJobs(): cron.ScheduledTask[] {
   const interval = config.scraperIntervalMinutes;
 
-  cron.schedule(`*/${interval} * * * *`, async () => {
+  const task = cron.schedule(`*/${interval} * * * *`, async () => {
     if (running) {
       console.log('Previous scraper run still in progress — skipping');
       return;
@@ -40,8 +40,18 @@ export function startScraperJobs() {
   console.log(`   Sources: ${SCRAPERS.map(s => s.name).join(', ')}`);
 
   // Run on startup after 5s delay (gives DB time to be ready)
-  setTimeout(async () => {
+  initialRun = setTimeout(async () => {
     console.log('Running initial scraper pass...');
     await runAllScrapers();
   }, 5000);
+  return [task];
+}
+
+let initialRun: ReturnType<typeof setTimeout> | undefined;
+
+// Graceful shutdown (#16): ne počinji nove prolaze, a tekući sačekaj najviše timeoutMs
+export async function stopScrapers(timeoutMs: number): Promise<void> {
+  clearTimeout(initialRun);
+  if (!running) return;
+  await Promise.race([running, new Promise((r) => setTimeout(r, timeoutMs))]);
 }

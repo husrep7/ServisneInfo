@@ -7,12 +7,15 @@ const clients = new Set<{ send: (data: string) => void }>();
 
 // Redis subscriber receives "incident:new" and "incident:resolved" events
 // published by the scraper pipeline and broadcasts to all WS clients.
+let sub: Redis | null = null;
+
 export async function websocketRoutes(app: FastifyInstance) {
-  const sub = new Redis(config.redisUrl);
+  const client = new Redis(config.redisUrl);
+  sub = client;
 
-  await sub.subscribe("incidents");
+  await client.subscribe("incidents");
 
-  sub.on("message", (_, message) => {
+  client.on("message", (_: string, message: string) => {
     for (const client of clients) {
       try {
         client.send(message);
@@ -39,4 +42,18 @@ export async function publishIncidentEvent(
 ) {
   publisher ??= new Redis(config.redisUrl);
   await publisher.publish("incidents", JSON.stringify({ type: `incident:${event}`, incidentId }));
+}
+
+// Health check (#17): PING preko publisher konekcije
+export async function pingRedis(): Promise<void> {
+  publisher ??= new Redis(config.redisUrl);
+  const reply = await publisher.ping();
+  if (reply !== "PONG") throw new Error(`Redis replied ${reply}`);
+}
+
+// Graceful shutdown (#16)
+export async function closeRedis(): Promise<void> {
+  await Promise.allSettled([sub?.quit(), publisher?.quit()]);
+  sub = null;
+  publisher = null;
 }
