@@ -507,3 +507,18 @@ h1, h2, h3 { font-weight: 800; letter-spacing: -.01em; }
 .notice { font-size: 13px; color: var(--gold-text); background: var(--gold-bg); border-radius: 12px; padding: 10px 12px; }
 
 .source-warning { margin: 10px 0 0; font-size: 13px; line-height: 1.45; color: var(--live-text); background: var(--danger-bg); border: 1px solid var(--danger-border); border-radius: 10px; padding: 8px 10px; }
+
+/* ── Privatnost i uslovi ── */
+.legal { display: flex; flex-direction: column; gap: 22px; padding-bottom: 40px; line-height: 1.6; font-size: 15px; }
+.legal h2 { font-size: 18px; font-weight: 800; margin-bottom: 8px; }
+.legal h3 { font-size: 14px; font-weight: 800; margin: 12px 0 4px; color: var(--text-sec); text-transform: uppercase; letter-spacing: .04em; }
+.legal ul { padding-left: 20px; display: flex; flex-direction: column; gap: 6px; list-style: disc; }
+.legal li::marker { color: var(--text-muted); }
+.legal a { color: var(--primary); font-weight: 600; }
+.legal-meta { font-size: 13px; color: var(--text-muted); }
+.legal-table { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.legal-table th, .legal-table td { text-align: left; vertical-align: top; padding: 10px 12px; border-top: 1px solid var(--divider); }
+.legal-table tr:first-child th, .legal-table tr:first-child td { border-top: none; }
+.legal-table th { font-weight: 700; width: 42%; }
+.legal-link { text-align: center; font-size: 13px; margin-top: 8px; }
+.legal-link a { color: var(--text-sec); }

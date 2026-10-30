@@ -1,7 +1,7 @@
 // Sačuvane adrese na webu ostaju samo u browseru (KTD2) i služe za filter "Kod mene" (R4)
 import { useSyncExternalStore } from 'react';
 import type { Incident } from './types';
-import { readJSON, writeJSON } from './storage';
+import { readJSON, removeKey, writeJSON } from './storage';
 
 export const MAX_ADDRESSES = 5;
 const KEY = 'si_addresses';
@@ -81,4 +81,13 @@ export function isNearMe(incident: Incident, addresses: SavedAddress[]): boolean
 // React hook: lista adresa koja se osvježava kad se promijeni u Postavkama
 export function useAddresses(): SavedAddress[] {
   return useSyncExternalStore(subscribeAddresses, loadAddresses);
+}
+
+// "Obriši moje podatke sa ovog uređaja": adrese, anonimni ID prijavioca i izbor teme (#26)
+export function clearBrowserData(): void {
+  saveAddresses([]);
+  removeKey(KEY);
+  removeKey(REPORTER_KEY);
+  removeKey('theme');
+  sessionReporter = null;
 }

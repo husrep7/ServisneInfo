@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MAX_ADDRESSES, makeAddress, saveAddresses, useAddresses } from '../addresses';
+import { MAX_ADDRESSES, clearBrowserData, makeAddress, saveAddresses, useAddresses } from '../addresses';
 import { storageAvailable } from '../storage';
 import { AddressSearch } from './AddressSearch';
 import { PinPicker, type LatLng } from './PinPicker';
@@ -23,6 +23,12 @@ export function MyAddresses() {
   };
 
   const remove = (id: string) => saveAddresses(addresses.filter(a => a.id !== id));
+
+  const clearAll = () => {
+    if (!window.confirm('Obrisati sačuvane adrese i anonimni ID prijavioca iz ovog browsera?')) return;
+    clearBrowserData();
+    reset();
+  };
 
   return (
     <div className="stack">
@@ -81,6 +87,10 @@ export function MyAddresses() {
       ) : (
         <p className="setting-sub">Sačuvano je najviše {MAX_ADDRESSES} adresa. Uklonite jednu da dodate novu.</p>
       )}
+
+      <button className="link-btn" style={{ alignSelf: 'flex-start', fontSize: 13 }} onClick={clearAll}>
+        Obriši moje podatke sa ovog uređaja
+      </button>
     </div>
   );
 }
