@@ -24,12 +24,11 @@ Za prijave građana u produkciji postavite i:
 docker-compose up -d
 ```
 
-## 3. Pokrenite migracije
+## 3. Instalirajte zavisnosti i pokrenite migracije
 
 ```bash
-cd apps/backend
-npm install
-npm run migrate
+npm install                      # iz roota — instalira backend, web, mobile i packages/shared
+npm run migrate -w apps/backend
 ```
 
 Migracije se primjenjuju redom (`src/db/migrations/*.sql`) i bilježe u tabeli `schema_migrations`, pa je `npm run migrate` sigurno pokretati više puta.
@@ -37,7 +36,7 @@ Migracije se primjenjuju redom (`src/db/migrations/*.sql`) i bilježe u tabeli `
 ## 4. Pokrenite backend
 
 ```bash
-npm run dev
+npm run backend
 # Server radi na http://localhost:3000
 # WebSocket na ws://localhost:3000/ws
 ```
@@ -45,10 +44,8 @@ npm run dev
 ## 5. Pokrenite mobilnu aplikaciju
 
 ```bash
-cd apps/mobile
-npm install
 # localhost na telefonu ne radi — koristite LAN IP računara
-EXPO_PUBLIC_API_URL=http://192.168.x.x:3000 npx expo start
+EXPO_PUBLIC_API_URL=http://192.168.x.x:3000 npm run mobile
 # Skenirajte QR kod Expo Go aplikacijom
 ```
 
@@ -57,18 +54,21 @@ Za push notifikacije potreban je EAS projectId (`npx eas init` ga upisuje u `app
 ## 6. Web aplikacija
 
 ```bash
-cd apps/web
-npm install
-cp .env.example .env   # VITE_API_URL
-npm run dev
+cp apps/web/.env.example apps/web/.env   # VITE_API_URL
+npm run web
 ```
+
+Na Vercelu: Root Directory ostaje `apps/web`, a uključena opcija "Include files outside of the Root Directory" (default) omogućava da Vercel instalira zavisnosti iz root `package-lock.json`.
 
 ## Testovi i CI
 
 ```bash
-npm test -w apps/backend        # parsiranje datuma/vremenske zone, scraperi, dedup
-npm run typecheck -w apps/backend
+npm test             # backend: parsiranje datuma/vremenske zone, scraperi, dedup
+npm run typecheck    # backend, web, mobile, packages/shared
+npm run lint         # web
 ```
+
+API tipovi (`Incident`, `IncidentType`…) žive u `packages/shared`. Uvoze se sa `import type { Incident } from '@servisneinfo/shared'`, pa promjena polja odmah ruši typecheck u aplikaciji koja je ne prati.
 
 GitHub Actions (`.github/workflows/ci.yml`) na svakom PR-u pokreće typecheck (backend, mobile), testove, migracije dva puta na pravom PostGIS-u, kao i lint i build za web.
 
