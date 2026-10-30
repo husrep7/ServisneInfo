@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { BottomNav } from './components/BottomNav';
+import { AppNav } from './components/AppNav';
 import Home from './pages/Home';
 import IncidentDetail from './pages/IncidentDetail';
 import MapPage from './pages/MapPage';
@@ -7,6 +7,8 @@ import Settings from './pages/Settings';
 import Report from './pages/Report';
 import { ThemeProvider } from './context/ThemeContext';
 import NotFound from './pages/NotFound';
+import Privacy from './pages/Privacy';
+import { Terms } from './pages/Legal';
 import AdminLogin from './admin/AdminLogin';
 import AdminLayout from './admin/AdminLayout';
 import Dashboard from './admin/pages/Dashboard';
@@ -22,12 +24,15 @@ export default function App() {
     <ThemeProvider>
     <div style={{ minHeight: '100vh' }}>
       <BrowserRouter>
+        <AppNav />
         <Routes>
-          <Route path="/"              element={<><Home />       <BottomNav /></>} />
+          <Route path="/"              element={<Home />} />
           <Route path="/incidents/:id" element={<IncidentDetail />} />
-          <Route path="/map"           element={<><MapPage />    <BottomNav /></>} />
+          <Route path="/map"           element={<MapPage />} />
           <Route path="/report"        element={<Report />} />
-          <Route path="/settings"      element={<><Settings />   <BottomNav /></>} />
+          <Route path="/settings"      element={<Settings />} />
+          <Route path="/uslovi"        element={<Terms />} />
+          <Route path="/privatnost"    element={<Privacy />} />
           <Route path="/admin/login"   element={<AdminLogin />} />
           <Route path="/admin"         element={<AdminLayout />}>
             <Route index              element={<Dashboard />} />
@@ -37,7 +42,7 @@ export default function App() {
             <Route path="izvori"      element={<Sources />} />
             <Route path="profil"      element={<Profile />} />
           </Route>
-          <Route path="*"              element={<><NotFound />   <BottomNav /></>} />
+          <Route path="*"              element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </div>

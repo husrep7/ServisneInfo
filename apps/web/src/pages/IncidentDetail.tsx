@@ -1,19 +1,22 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { fetchIncident } from '../api';
 import type { Incident } from '../types';
-import { TYPE_LABEL, TYPE_ICON, TYPE_COLOR, fmtDateTime } from '../types';
+import { TYPE_LABEL, TYPE_COLOR, fmtDateTime, getCompany, typeStyle } from '../types';
+import { PageHeader } from '../components/PageHeader';
+import { IncidentProgress, StatusBadge } from '../components/IncidentCard';
+import { Icon, TypeIcon } from '../components/Icon';
+import { EmptyState } from '../components/States';
 
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 export default function IncidentDetail() {
-  const { id }   = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const [incident, setIncident] = useState<Incident | null>(null);
   const [loading, setLoading]   = useState(true);
   const mapRef      = useRef<HTMLDivElement>(null);
-  const mapInstance = useRef<any>(null);
+  const mapInstance = useRef<L.Map | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -41,76 +44,99 @@ export default function IncidentDetail() {
     return () => { map.remove(); mapInstance.current = null; };
   }, [incident]);
 
-  if (loading) return <div className="spinner" style={{ paddingTop: 100 }}><div className="spinner-ring" /></div>;
-  if (!incident) return <div className="empty"><div className="empty-title">Incident nije pronađen.</div></div>;
+  if (loading) return <div className="page"><div className="spinner"><div className="spinner-ring" /></div></div>;
+  if (!incident) {
+    return (
+      <div className="page">
+        <PageHeader back title="Prekid" />
+        <EmptyState icon="alert" tone="neutral" title="Prekid nije pronađen"
+          action={<Link to="/" className="btn secondary">Idi na početnu</Link>}>
+          Obavijest je možda uklonjena ili link nije ispravan.
+        </EmptyState>
+      </div>
+    );
+  }
 
-  const color = TYPE_COLOR[incident.type];
+  const company = getCompany(incident.type);
 
   return (
-    <div className="page">
-      {/* Header */}
-      <div className="detail-header">
-        <button className="back-btn" onClick={() => navigate(-1)} aria-label="Nazad">‹</button>
-        <div style={{ flex: 1 }}>
-          <div className="detail-type" style={{ color }}>
-            {TYPE_ICON[incident.type]} {TYPE_LABEL[incident.type]}
-          </div>
-          <div className="detail-title">{incident.title}</div>
-        </div>
-      </div>
+    <div className="page" style={typeStyle(incident.type)}>
+      <PageHeader back title={incident.title}
+        eyebrow={<span style={{ color: 'var(--type-color)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <TypeIcon type={incident.type} size={14} /> {TYPE_LABEL[incident.type]}
+        </span>} />
 
-      <div className="detail-body">
-        {/* Status + time */}
-        <div className="time-row">
-          <div>
-            <span className={`badge-${incident.status === 'active' ? 'live' : incident.status === 'scheduled' ? 'scheduled' : 'resolved'}`}>
-              {incident.status === 'active' ? 'AKTIVNO' : incident.status === 'scheduled' ? 'PLANIRANO' : 'RIJEŠENO'}
-            </span>
+      <div className="container detail-layout">
+        <div className="stack">
+          <div className="card status-card">
+            <div className="status-card-top">
+              <StatusBadge status={incident.status} />
+              <span className="status-card-area">{incident.municipality}</span>
+            </div>
+            {(incident.starts_at || incident.ends_at) && (
+              <div className="time-grid">
+                {incident.starts_at && (
+                  <div>
+                    <div className="time-label">Početak</div>
+                    <div className="time-value mono">{fmtDateTime(incident.starts_at)}</div>
+                  </div>
+                )}
+                {incident.ends_at && (
+                  <div>
+                    <div className="time-label">Kraj</div>
+                    <div className="time-value mono">{fmtDateTime(incident.ends_at)}</div>
+                  </div>
+                )}
+              </div>
+            )}
+            <IncidentProgress incident={incident} bar />
+            <div className="detail-company">
+              <div className="inc-card-icon"><TypeIcon type={incident.type} size={20} /></div>
+              {incident.origin === 'user' ? (
+                <div className="detail-company-name">
+                  Prijava korisnika
+                  <small>Potvrđeno na osnovu prijava građana, nije službena obavijest preduzeća {company.shortName}.</small>
+                </div>
+              ) : (
+                <div className="detail-company-name">
+                  {company.shortName}
+                  <small>{company.name}</small>
+                </div>
+              )}
+              <a href={`tel:${company.phone.replace(/\s/g, '')}`} className="btn secondary sm">
+                <Icon name="phone" size={14} /> Pozovi
+              </a>
+            </div>
           </div>
-          {incident.starts_at && (
-            <div className="time-block">
-              <label>Početak</label>
-              <span>{fmtDateTime(incident.starts_at)}</span>
+
+          {incident.affected_addresses?.length ? (
+            <div className="card">
+              <div className="card-title">Zahvaćene ulice</div>
+              <div className="chips">
+                {incident.affected_addresses.map(a => (
+                  <span key={a} className="chip"><Icon name="pin" size={14} /> {a}</span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {incident.description && (
+            <div className="card">
+              <div className="card-title">Opis</div>
+              <p className="detail-description">{incident.description}</p>
             </div>
           )}
-          {incident.ends_at && (
-            <div className="time-block">
-              <label>Kraj</label>
-              <span>{fmtDateTime(incident.ends_at)}</span>
-            </div>
+
+          {incident.source_url && (
+            <a href={incident.source_url} target="_blank" rel="noreferrer" className="btn block primary">
+              Otvori zvanični izvor <Icon name="external" size={16} className="btn-arrow" />
+            </a>
           )}
         </div>
 
-        {/* Map */}
-        <div className="detail-map" ref={mapRef} style={{ height: 240 }} />
-
-        {/* Addresses */}
-        {incident.affected_addresses?.length ? (
-          <div className="detail-section">
-            <div className="detail-section-title">Zahvaćene ulice</div>
-            <div>
-              {incident.affected_addresses.map(a => (
-                <span key={a} className="address-pill">📍 {a}</span>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        {/* Description */}
-        {incident.description && (
-          <div className="detail-section">
-            <div className="detail-section-title">Opis</div>
-            <p className="detail-description">{incident.description}</p>
-          </div>
-        )}
-
-        {/* Source */}
-        {incident.source_url && (
-          <a href={incident.source_url} target="_blank" rel="noreferrer"
-            className="source-btn" style={{ background: color }}>
-            Otvori zvanični izvor →
-          </a>
-        )}
+        <div className="detail-map-col">
+          <div className="detail-map" ref={mapRef} />
+        </div>
       </div>
     </div>
   );

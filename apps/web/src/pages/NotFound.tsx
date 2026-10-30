@@ -1,14 +1,13 @@
 import { Link } from 'react-router-dom';
+import { EmptyState } from '../components/States';
 
 export default function NotFound() {
   return (
-    <div className="page">
-      <div className="empty" style={{ paddingTop: 100 }}>
-        <div className="empty-icon">🧭</div>
-        <div className="empty-title">Stranica nije pronađena</div>
-        <div className="empty-sub" style={{ marginBottom: 24 }}>Link je možda zastario ili pogrešno upisan.</div>
-        <Link to="/" style={{ color: 'var(--primary)', fontWeight: 700 }}>Idi na početnu</Link>
-      </div>
+    <div className="page" style={{ paddingTop: 60 }}>
+      <EmptyState icon="map" tone="neutral" title="Stranica nije pronađena"
+        action={<Link to="/" className="btn primary">Idi na početnu</Link>}>
+        Link je možda zastario ili pogrešno upisan.
+      </EmptyState>
     </div>
   );
 }

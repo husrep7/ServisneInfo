@@ -1,0 +1,13 @@
+{
+  "name": "@servisneinfo/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Zajednički tipovi API-ja za backend, web i mobile (samo tipovi, bez runtime koda)",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.3"
+  }
+}

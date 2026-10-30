@@ -6,7 +6,7 @@ on:
     branches: [main]
 
 jobs:
-  backend-mobile:
+  checks:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -41,21 +41,13 @@ jobs:
       - name: Backend — build
         run: npm run build -w apps/backend
 
-      - name: Mobile — typecheck
-        run: npx tsc --noEmit -p apps/mobile
+      - name: Shared — typecheck
+        run: npm run typecheck -w packages/shared
 
-  web:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/web
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: apps/web/package-lock.json
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run build
+      - name: Mobile — typecheck
+        run: npm run typecheck -w apps/mobile
+
+      - name: Web — lint
+        run: npm run lint -w apps/web
+      - name: Web — build
+        run: npm run build -w apps/web

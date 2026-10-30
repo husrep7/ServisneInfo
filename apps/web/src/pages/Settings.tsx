@@ -1,11 +1,17 @@
 import { useEffect, useState } from 'react';
-import type { CSSProperties } from 'react';
-import { useNavigate } from 'react-router-dom';
+import type { CSSProperties, ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { COMPANIES } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { fetchScraperStatus } from '../api';
 import type { ScraperStatus } from '../api';
-import { clickable } from '../a11y';
+import { PageHeader } from '../components/PageHeader';
+import { BrandMark, Icon } from '../components/Icon';
+import { MyAddresses } from '../components/MyAddresses';
+import type { IconName } from '../components/Icon';
+import { Segmented } from '../components/Segmented';
+import { APP_VERSION, CONTACT_EMAIL } from '../config';
+
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -17,131 +23,116 @@ function timeAgo(iso: string): string {
   return `prije ${Math.floor(h / 24)} d`;
 }
 
+// Red u grupisanoj listi postavki: link (interni ili vanjski) ili samo prikaz vrijednosti
+function Row({ icon, label, sub, value, to, href, external }: {
+  icon: IconName; label: string; sub?: string; value?: ReactNode;
+  to?: string; href?: string; external?: boolean;
+}) {
+  const body = (
+    <>
+      <span className="row-icon"><Icon name={icon} size={18} /></span>
+      <span className="row-body">
+        <span className="row-label">{label}</span>
+        {sub && <span className="row-sub">{sub}</span>}
+      </span>
+      {value && <span className="row-value">{value}</span>}
+      {(to || href) && <Icon name={external ? 'external' : 'chevron'} size={16} className="row-chevron" />}
+    </>
+  );
+  if (to)   return <Link to={to} className="row link">{body}</Link>;
+  if (href) return <a href={href} className="row link" {...(external ? { target: '_blank', rel: 'noreferrer' } : {})}>{body}</a>;
+  return <div className="row">{body}</div>;
+}
+
 export default function Settings() {
   const { theme, toggle } = useTheme();
-  const navigate = useNavigate();
   const [scraperStatus, setScraperStatus] = useState<ScraperStatus[]>([]);
 
   useEffect(() => {
     fetchScraperStatus().then(setScraperStatus).catch(() => {});
   }, []);
 
-  const getStatus = (source: string) =>
-    scraperStatus.find(s => s.source === source);
+  const getStatus = (source: string) => scraperStatus.find(s => s.source === source);
 
   return (
     <div className="page">
-      {/* Header */}
-      <div className="s-header" style={{ paddingBottom: 20 }}>
-        <div>
-          <div className="s-header-label">Servisne Informacije</div>
-          <div className="s-header-title" style={{ fontSize: 20 }}>O aplikaciji</div>
-        </div>
-      </div>
+      <PageHeader eyebrow="ServisneInfo" title="Profil" narrow />
 
-      {/* App info */}
-      <div className="profile-block">
-        <div className="profile-avatar app-icon">
-          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="9" width="4" height="12"/><rect x="10" y="5" width="4" height="16"/><rect x="17" y="12" width="4" height="9"/><line x1="1" y1="21" x2="23" y2="21"/>
-          </svg>
-        </div>
-        <div>
-          <div className="profile-name">Servisne Informacije</div>
-          <div className="profile-sub">Sarajevo, Bosna i Hercegovina</div>
-          <div className="profile-version">
-            v1.0.0 · Ažurirano svakih 15 min
+      <div className="container narrow stack" style={{ marginTop: 20 }}>
+        <div className="card profile-card">
+          <BrandMark size={56} />
+          <div>
+            <div className="profile-name">ServisneInfo</div>
+            <div className="profile-sub">Obavijesti o prekidima komunalnih usluga u Kantonu Sarajevo</div>
           </div>
         </div>
-      </div>
 
-      {/* Dark mode row */}
-      <div className="settings-list" style={{ marginTop: 8 }}>
-        <div className="settings-item" {...clickable(toggle)} aria-pressed={theme === 'dark'}>
-          <div className="settings-item-icon theme-icon" style={{ fontSize: 18 }}>
-            {theme === 'dark' ? '🌙' : '☀️'}
-          </div>
-          <div className="settings-item-body">
-            <div className="settings-item-label">Izgled</div>
-            <div className="settings-item-sub">{theme === 'dark' ? 'Tamni mod' : 'Svjetli mod'}</div>
-          </div>
-          <div className={`toggle-switch${theme === 'dark' ? ' on' : ''}`}>
-            <div className="toggle-switch-dot" />
-          </div>
+        <div className="card setting-row">
+          <span className="setting-icon"><Icon name={theme === 'dark' ? 'moon' : 'sun'} /></span>
+          <span className="setting-body">
+            <span className="setting-label" style={{ display: 'block' }}>Izgled</span>
+            <span className="setting-sub" style={{ display: 'block' }}>Tema aplikacije na ovom uređaju</span>
+          </span>
+          <Segmented label="Tema" value={theme} onChange={t => { if (t !== theme) toggle(); }}
+            options={[
+              { value: 'light', label: <><Icon name="sun" size={15} /> Svijetla</> },
+              { value: 'dark',  label: <><Icon name="moon" size={15} /> Tamna</> },
+            ]} />
         </div>
-      </div>
 
-      {/* ── PREDUZEĆA ── */}
-      <div className="s-section" style={{ marginTop: 20 }}>
-        <span className="s-section-title">Preduzeća i izvori podataka</span>
-      </div>
+        <MyAddresses />
 
-      <div style={{ background: 'var(--card)' }}>
-        {COMPANIES.map(c => {
-          const status = getStatus(c.scraperSource);
-          const hasError = status?.error != null;
-          const lastRun  = status?.ran_at ? timeAgo(status.ran_at) : '—';
-          const statusColor = hasError ? 'var(--live)' : 'var(--green)';
+        <div className="group-title">Podrška</div>
+        <div className="list-card">
+          <Row icon="mail" label="Kontaktirajte nas" sub="Pitanja, greške u podacima, prijedlozi"
+            href={`mailto:${CONTACT_EMAIL}`} value={CONTACT_EMAIL} />
+          <Row icon="plus" label="Prijavi prekid" sub="Nešto ne radi, a nije objavljeno" to="/report" />
+        </div>
 
-          return (
-            <div key={c.id} className="company-card">
-              {/* Top row: logo + name + status dot */}
-              <div className="company-card-top">
-                <div className="company-logo" style={{ width: 48, height: 48, '--company-bg': c.logoBg } as CSSProperties}>
-                  <img src={c.logo} alt={c.shortName}
-                    style={{ width: 36, height: 36, objectFit: 'contain' }}
-                    onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                </div>
-
-                <div className="company-row-body">
-                  <div className="company-card-name">{c.shortName}</div>
-                  <div className="company-card-fullname">{c.name}</div>
-                </div>
-
-                {/* Scraper status indikator */}
-                <div className="company-status" style={{ '--accent': statusColor } as CSSProperties}>
-                  <div className="company-status-dot" />
-                  <span className="company-status-label">
-                    {hasError ? 'Greška' : 'Aktivan'}
+        <div className="group-title">Izvori podataka</div>
+        <div className="list-card">
+          {COMPANIES.map(c => {
+            const status   = getStatus(c.scraperSource);
+            const health   = status?.health ?? (status?.error != null ? 'failing' : 'ok');
+            const hasError = health !== 'ok';
+            return (
+              <div key={c.id} className="source-row">
+                <span className="source-logo" style={{ '--company-bg': c.logoBg } as CSSProperties}>
+                  <img src={c.logo} alt="" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                </span>
+                <span className="row-body">
+                  <span className="row-label">{c.shortName}</span>
+                  <span className="row-sub">
+                    <span className={`source-dot${hasError ? ' err' : ''}`} />
+                    {health === 'failing' ? 'Preuzimanje ne radi, provjerite stranicu preduzeća'
+                      : health === 'empty' ? 'Dugo bez novih obavijesti, provjerite i direktno'
+                      : status?.ran_at ? `Ažurirano ${timeAgo(status.ran_at)}` : 'Bez podataka'}
                   </span>
-                </div>
-              </div>
-
-              {/* Scraper info */}
-              <div className="company-meta-row">
-                <div>
-                  🕐 Zadnje ažuriranje: <b>{lastRun}</b>
-                </div>
-                {status && !hasError && (
-                  <div>
-                    📋 Pronađeno: <b>{status.incidents_found}</b>
-                  </div>
-                )}
-              </div>
-
-              {/* Action buttons */}
-              <div className="company-actions">
-                <a href={`tel:${c.phone.replace(/\s/g, '')}`} className="action-btn">
-                  📞 {c.phone}
+                </span>
+                <a href={`tel:${c.phone.replace(/\s/g, '')}`} className="mini-btn" aria-label={`Pozovi ${c.shortName}: ${c.phone}`} title={c.phone}>
+                  <Icon name="phone" size={15} />
                 </a>
-                <a href={c.url} target="_blank" rel="noreferrer" className="action-btn primary">
-                  🌐 Web
+                <a href={c.url} target="_blank" rel="noreferrer" className="mini-btn" aria-label={`Web stranica: ${c.shortName}`} title={c.url}>
+                  <Icon name="external" size={15} />
                 </a>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
 
-      {/* ── PRIJAVI INCIDENT ── */}
-      <div className="report-cta-wrap">
-        <button onClick={() => navigate('/report')} className="report-cta-btn">
-          <span style={{ fontSize: 13 }}>📢</span>
-          Prijavi incident
-        </button>
-        <p className="report-cta-hint">
-          Primijeti problem koji nije objavljen? Javi nam odmah.
-        </p>
+        <div className="group-title">Pravno</div>
+        <div className="list-card">
+          <Row icon="file" label="Uslovi korištenja" to="/uslovi" />
+          <Row icon="shield" label="Politika privatnosti" to="/privatnost" />
+        </div>
+
+        <div className="group-title">O aplikaciji</div>
+        <div className="list-card">
+          <Row icon="info" label="Verzija" value={APP_VERSION} />
+          <Row icon="refresh" label="Ažuriranje podataka" value="svakih 15 min" />
+        </div>
+
+        <p className="settings-foot">© {new Date().getFullYear()} ServisneInfo · Sarajevo</p>
       </div>
     </div>
   );

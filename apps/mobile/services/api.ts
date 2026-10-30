@@ -1,5 +1,6 @@
 import axios from "axios";
 import Constants from "expo-constants";
+import type { Incident } from "@servisneinfo/shared";
 
 // localhost na telefonu je sam telefon — postaviti EXPO_PUBLIC_API_URL
 // (LAN IP računara u developmentu, npr. http://192.168.1.10:3000, ili produkcijski URL)
@@ -12,21 +13,7 @@ export const WS_URL = BASE_URL.replace(/^http/, "ws") + "/ws";
 
 export const api = axios.create({ baseURL: BASE_URL, timeout: 10000 });
 
-export interface Incident {
-  id: string;
-  type: "water" | "electricity" | "gas" | "heating" | "internet";
-  title: string;
-  description: string | null;
-  source_url: string | null;
-  affected_addresses: string[] | null;
-  municipality: string;
-  starts_at: string | null;
-  ends_at: string | null;
-  status: "active" | "resolved" | "scheduled";
-  created_at: string;
-  area_geojson: GeoJSON.Polygon | null;
-  distance_meters: number | null;
-}
+export type { Incident } from "@servisneinfo/shared";
 
 export async function fetchIncidents(params?: {
   lat?: number;
