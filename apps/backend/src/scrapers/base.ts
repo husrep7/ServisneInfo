@@ -6,8 +6,9 @@ import { parseAddressesFromText, buildPolygonFromAddresses } from '../services/g
 import { notifyDevicesInArea } from '../services/notifications';
 import { publishIncidentEvent } from '../routes/websocket';
 import type { ScraperResult } from './index';
+import type { IncidentType } from '@servisneinfo/shared';
 
-export type IncidentType = 'water' | 'electricity' | 'gas' | 'heating' | 'internet';
+export type { IncidentType };
 
 export interface ParsedItem {
   title:       string;
