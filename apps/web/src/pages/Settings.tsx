@@ -7,6 +7,7 @@ import { fetchScraperStatus } from '../api';
 import type { ScraperStatus } from '../api';
 import { PageHeader } from '../components/PageHeader';
 import { BrandMark, Icon } from '../components/Icon';
+import { MyAddresses } from '../components/MyAddresses';
 import type { IconName } from '../components/Icon';
 import { Segmented } from '../components/Segmented';
 import { APP_VERSION, CONTACT_EMAIL } from '../config';
@@ -79,6 +80,8 @@ export default function Settings() {
             ]} />
         </div>
 
+        <MyAddresses />
+
         <div className="group-title">Podrška</div>
         <div className="list-card">
           <Row icon="mail" label="Kontaktirajte nas" sub="Pitanja, greške u podacima, prijedlozi"
@@ -90,7 +93,8 @@ export default function Settings() {
         <div className="list-card">
           {COMPANIES.map(c => {
             const status   = getStatus(c.scraperSource);
-            const hasError = status?.error != null;
+            const health   = status?.health ?? (status?.error != null ? 'failing' : 'ok');
+            const hasError = health !== 'ok';
             return (
               <div key={c.id} className="source-row">
                 <span className="source-logo" style={{ '--company-bg': c.logoBg } as CSSProperties}>
@@ -100,7 +104,9 @@ export default function Settings() {
                   <span className="row-label">{c.shortName}</span>
                   <span className="row-sub">
                     <span className={`source-dot${hasError ? ' err' : ''}`} />
-                    {hasError ? 'Greška pri ažuriranju' : status?.ran_at ? `Ažurirano ${timeAgo(status.ran_at)}` : 'Bez podataka'}
+                    {health === 'failing' ? 'Preuzimanje ne radi, provjerite stranicu preduzeća'
+                      : health === 'empty' ? 'Dugo bez novih obavijesti, provjerite i direktno'
+                      : status?.ran_at ? `Ažurirano ${timeAgo(status.ran_at)}` : 'Bez podataka'}
                   </span>
                 </span>
                 <a href={`tel:${c.phone.replace(/\s/g, '')}`} className="mini-btn" aria-label={`Pozovi ${c.shortName}: ${c.phone}`} title={c.phone}>

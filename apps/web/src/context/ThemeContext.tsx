@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
+import { readString, writeString } from '../storage';
 
 type Theme = 'light' | 'dark';
 
@@ -9,14 +10,14 @@ const ThemeContext = createContext<{ theme: Theme; toggle: () => void }>({
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
-    const saved = localStorage.getItem('theme');
+    const saved = readString('theme');
     if (saved === 'dark' || saved === 'light') return saved;
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
+    writeString('theme', theme);
   }, [theme]);
 
   const toggle = () => setTheme(t => t === 'light' ? 'dark' : 'light');

@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { postReport } from '../api';
+import { reporterId } from '../addresses';
+import { PinPicker, type LatLng } from '../components/PinPicker';
+import { AddressSearch } from '../components/AddressSearch';
 import type { IncidentType } from '../types';
 import { typeStyle } from '../types';
 import { PageHeader } from '../components/PageHeader';
@@ -29,6 +32,8 @@ const EMPTY: Form = { type: '', title: '', description: '', address: '', reporte
 export default function Report() {
   const navigate  = useNavigate();
   const [form, setForm]     = useState<Form>(EMPTY);
+  const [point, setPoint]   = useState<LatLng | null>(null);
+  const [locating, setLocating] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError]     = useState('');
@@ -45,9 +50,10 @@ export default function Report() {
     setError('');
     setLoading(true);
     try {
-      await postReport(form);
+      await postReport({ ...form, type: form.type, ...(point ?? {}), reporterKey: reporterId() });
       setSuccess(true);
       setForm(EMPTY);
+      setPoint(null);
     } catch {
       setError('Greška pri slanju. Pokušajte ponovo.');
     } finally {
@@ -67,7 +73,8 @@ export default function Report() {
                 <button onClick={() => navigate('/')} className="btn secondary block">Idi na početnu</button>
               </div>
             }>
-            Vaša prijava je zaprimljena. Provjeriće je naš tim i dodati u sistem ukoliko je potvrđena.
+            Prijava je odmah vidljiva drugima kao nepotvrđena. Postaje prekid kad je potvrdi moderator
+            ili kad isti problem u blizini prijave još dva korisnika. Ako je niko ne potvrdi, ističe za 6 sati.
           </EmptyState>
         </div>
       </div>
@@ -106,6 +113,37 @@ export default function Report() {
             />
           </Field>
 
+          <div>
+            <span className="form-label" id="where-label">Gdje? <span className="opt">(pin na mapi pomaže da se prijava potvrdi)</span></span>
+            <div className="stack" role="group" aria-labelledby="where-label">
+              <AddressSearch placeholder="Potražite ulicu i broj"
+                onPick={r => {
+                  setPoint({ lat: r.lat, lng: r.lng });
+                  setForm(f => ({ ...f, address: f.address.trim() ? f.address : r.label }));
+                }} />
+              <PinPicker value={point} onChange={setPoint} label="Mapa: kliknite da postavite mjesto problema" />
+              <div className="pin-help">
+                {point
+                  ? <span><Icon name="check" size={14} /> Pin je postavljen — možete ga prevući.</span>
+                  : <span>Kliknite na mapu da označite mjesto.</span>}
+                {'geolocation' in navigator && (
+                  <button type="button" className="link-btn" disabled={locating}
+                    onClick={() => {
+                      setLocating(true);
+                      navigator.geolocation.getCurrentPosition(
+                        p => { setPoint({ lat: p.coords.latitude, lng: p.coords.longitude }); setLocating(false); },
+                        () => setLocating(false),
+                        { enableHighAccuracy: true, timeout: 10_000 },
+                      );
+                    }}>
+                    {locating ? 'Tražim lokaciju…' : 'Koristi moju lokaciju'}
+                  </button>
+                )}
+                {point && <button type="button" className="link-btn" onClick={() => setPoint(null)}>Ukloni pin</button>}
+              </div>
+            </div>
+          </div>
+
           <Field label="Ulica / adresa">
             <input placeholder="npr. Ferhadija 12, Grbavica, Ilidža..." value={form.address} onChange={set('address')} />
           </Field>
@@ -121,13 +159,17 @@ export default function Report() {
           </Field>
 
           <div className="form-divider">Vaši podaci (opciono)</div>
+          <p className="form-hint" style={{ textAlign: 'left', marginTop: -8 }}>
+            Ime i kontakt vidi samo moderator, nikad se ne objavljuju, i brišu se nakon 7 dana.{' '}
+            <Link to="/privatnost">Više o privatnosti</Link>
+          </p>
 
           <Field label="Ime i prezime" optional>
             <input placeholder="Kako da vas nazovemo?" value={form.reporterName} onChange={set('reporterName')} />
           </Field>
 
           <Field label="Telefon ili e-mail" optional>
-            <input placeholder="Za potvrdu prijave (neće biti objavljeno)" value={form.contact} onChange={set('contact')} />
+            <input placeholder="Ako moderator treba nešto provjeriti" value={form.contact} onChange={set('contact')} />
           </Field>
 
           {error && (
@@ -138,7 +180,7 @@ export default function Report() {
             <Icon name="send" size={17} className="btn-send" /> {loading ? 'Slanje...' : 'Pošalji prijavu'}
           </button>
 
-          <p className="form-hint">Prijave prolaze kroz ručnu provjeru prije objavljivanja.</p>
+          <p className="form-hint">Prijava se odmah prikazuje kao nepotvrđena. Moguće je poslati najviše 3 prijave na sat.</p>
         </form>
       </div>
     </div>

@@ -167,6 +167,26 @@ export function plural(n: number, one: string, few: string, many: string): strin
   return many;
 }
 
+// Nepotvrđena prijava ističe 6 sati nakon slanja (KTD10)
+export const REPORT_TTL_H = 6;
+
+export function reportExpiresIn(createdAt: string): string {
+  const left = new Date(createdAt).getTime() + REPORT_TTL_H * 3600e3 - Date.now();
+  if (left <= 0) return 'uskoro ističe';
+  const h = Math.floor(left / 3600e3);
+  const m = Math.round((left % 3600e3) / 60e3);
+  return h > 0 ? `ističe za ${h} h` : `ističe za ${m} min`;
+}
+
+export function timeAgo(iso: string): string {
+  const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (min < 1)  return 'upravo';
+  if (min < 60) return `prije ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24)   return `prije ${h} h`;
+  return `prije ${Math.floor(h / 24)} d`;
+}
+
 // "3 h 20 min", "45 min", "2 d"
 export function fmtDuration(ms: number): string {
   const min = Math.max(1, Math.round(ms / 60000));

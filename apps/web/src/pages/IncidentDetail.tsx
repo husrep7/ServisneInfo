@@ -92,10 +92,17 @@ export default function IncidentDetail() {
             <IncidentProgress incident={incident} bar />
             <div className="detail-company">
               <div className="inc-card-icon"><TypeIcon type={incident.type} size={20} /></div>
-              <div className="detail-company-name">
-                {company.shortName}
-                <small>{company.name}</small>
-              </div>
+              {incident.origin === 'user' ? (
+                <div className="detail-company-name">
+                  Prijava korisnika
+                  <small>Potvrđeno na osnovu prijava građana, nije službena obavijest preduzeća {company.shortName}.</small>
+                </div>
+              ) : (
+                <div className="detail-company-name">
+                  {company.shortName}
+                  <small>{company.name}</small>
+                </div>
+              )}
               <a href={`tel:${company.phone.replace(/\s/g, '')}`} className="btn secondary sm">
                 <Icon name="phone" size={14} /> Pozovi
               </a>

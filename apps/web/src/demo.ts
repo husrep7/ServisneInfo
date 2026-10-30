@@ -1,7 +1,7 @@
 // Demo podaci za lokalni razvoj bez backenda: VITE_DEMO=1 npm run dev
 // U produkcijskom buildu (bez VITE_DEMO) ovaj fajl se ne koristi.
 import type { Incident } from './types';
-import type { ScraperStatus } from './api';
+import type { PublicReport, ReportInput, ScraperStatus } from './api';
 
 const H = 3600e3;
 
@@ -33,6 +33,8 @@ export const DEMO_INCIDENTS: Incident[] = [
   make('4', 'gas',         'Isključenje gasa zbog održavanja',                  'scheduled', 20, 26, 'Stari Grad',    ['Bistrik', 'Logavina'],            43.86,  18.434),
   make('5', 'internet',    'Smetnje na optičkoj mreži',                         'scheduled', 30, 34, 'Ilidža',        ['Butmirska cesta'],                43.83,  18.31),
   make('6', 'electricity', 'Zamjena trafostanice',                              'scheduled', 44, 50, 'Vogošća',       ['Jošanička', 'Igmanska'],          43.902, 18.344),
+  { ...make('7', 'water', 'Nema vode (prijave građana)', 'active', -1, 0, 'Centar', ['Maršala Tita 30', 'Alipašina 2'], 43.8605, 18.411),
+    ends_at: null, description: 'Potvrđeno na osnovu prijava građana (3).', source_url: null, origin: 'user' },
 ];
 
 export const DEMO_SCRAPERS: ScraperStatus[] = [
@@ -40,5 +42,21 @@ export const DEMO_SCRAPERS: ScraperStatus[] = [
   { source: 'Elektrodistribucija EPBiH', incidents_found: 7, incidents_new: 0, error: null, ran_at: new Date(Date.now() - 6 * 60e3).toISOString() },
   { source: 'Sarajevogas',               incidents_found: 1, incidents_new: 0, error: null, ran_at: new Date(Date.now() - 6 * 60e3).toISOString() },
   { source: 'Toplane Sarajevo',          incidents_found: 2, incidents_new: 1, error: null, ran_at: new Date(Date.now() - 6 * 60e3).toISOString() },
-  { source: 'BH Telecom',                incidents_found: 0, incidents_new: 0, error: 'timeout', ran_at: new Date(Date.now() - 40 * 60e3).toISOString() },
+  { source: 'BH Telecom',                incidents_found: 0, incidents_new: 0, error: 'timeout', ran_at: new Date(Date.now() - 40 * 60e3).toISOString(), health: 'failing', health_detail: '3 uzastopne greške: timeout' },
 ];
+
+const M = 60e3;
+
+export const DEMO_REPORTS: PublicReport[] = [
+  { id: 'r1', type: 'water', title: 'Nema vode od jutros', description: 'Cijela zgrada bez vode, komšije isto.', address: 'Hamze Hume 4', municipality: 'Novo Sarajevo', lat: 43.8545, lng: 18.399, created_at: new Date(Date.now() - 35 * M).toISOString() },
+  { id: 'r2', type: 'electricity', title: 'Nestala struja u ulici', description: null, address: 'Mula Mustafe Bašeskije 20', municipality: 'Stari Grad', lat: 43.8598, lng: 18.4305, created_at: new Date(Date.now() - 80 * M).toISOString() },
+];
+
+// Lokalni demo: poslana prijava se odmah vidi kao nepotvrđena
+export function addDemoReport(r: ReportInput): void {
+  DEMO_REPORTS.unshift({
+    id: `r${Date.now()}`, type: r.type, title: r.title, description: r.description || null,
+    address: r.address, municipality: 'Sarajevo', lat: r.lat ?? null, lng: r.lng ?? null,
+    created_at: new Date().toISOString(),
+  });
+}

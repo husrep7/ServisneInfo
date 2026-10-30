@@ -1,8 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchIncidents, connectWS } from '../api';
+import { fetchIncidents, fetchPublicReports, connectWS } from '../api';
+import type { PublicReport } from '../api';
 import { IncidentCard } from '../components/IncidentCard';
+import { ReportCard } from '../components/ReportCard';
+import { isNearMe, useAddresses } from '../addresses';
 import { Icon, TypeIcon } from '../components/Icon';
 import { Segmented } from '../components/Segmented';
 import { EmptyState, LoadError, SkeletonList } from '../components/States';
@@ -31,10 +34,12 @@ function BoardClock() {
   );
 }
 
-type StatusFilter = 'all' | 'active' | 'scheduled';
+type StatusFilter = 'all' | 'active' | 'scheduled' | 'near';
 
 export default function Home() {
   const [all, setAll]                   = useState<Incident[]>([]);
+  const [reports, setReports]           = useState<PublicReport[]>([]);
+  const addresses = useAddresses();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [loading, setLoading]           = useState(true);
   const [failed, setFailed]             = useState(false);
@@ -59,6 +64,8 @@ export default function Home() {
       data.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setAll(data);
       setFailed(false);
+      // Prijave su dodatak — ako ne uspiju, lista prekida i dalje radi
+      fetchPublicReports().then(setReports).catch(() => setReports([]));
     } catch (err) {
       console.error('Učitavanje incidenata nije uspjelo', err);
       setFailed(true);
@@ -78,9 +85,12 @@ export default function Home() {
 
   const active    = all.filter(i => i.status === 'active');
   const scheduled = all.filter(i => i.status === 'scheduled');
+  // "Kod mene": prekidi čija zona pokriva neku sačuvanu adresu (R4), računa se u browseru
+  const nearMe    = all.filter(i => isNearMe(i, addresses));
   // Default: posljednjih 5 aktivnih; filter Aktivno/Planirano: sve iz te kategorije
   const displayed = statusFilter === 'all' ? active.slice(0, 5)
-    : statusFilter === 'active' ? active : scheduled;
+    : statusFilter === 'active' ? active
+    : statusFilter === 'near' ? nearMe : scheduled;
   // Vremenska linija: planirani radovi po vremenu početka
   const upcoming = scheduled
     .filter(i => i.starts_at)
@@ -137,6 +147,7 @@ export default function Home() {
             <h2 className="section-title">
               {statusFilter === 'active' ? 'Aktivni prekidi'
                 : statusFilter === 'scheduled' ? 'Planirani prekidi'
+                : statusFilter === 'near' ? 'Prekidi na mojim adresama'
                 : 'Upravo sada'}
             </h2>
             {ready && (
@@ -145,12 +156,24 @@ export default function Home() {
                   { value: 'all',       label: 'Najnovije' },
                   { value: 'active',    label: 'Aktivno',   count: active.length },
                   { value: 'scheduled', label: 'Planirano', count: scheduled.length },
+                  { value: 'near',      label: 'Kod mene',  count: addresses.length ? nearMe.length : undefined },
                 ]} />
             )}
           </div>
 
           {loading ? <SkeletonList />
             : failed ? <LoadError onRetry={retry} />
+            : statusFilter === 'near' && addresses.length === 0 ? (
+              <EmptyState icon="pin" tone="neutral" title="Dodajte adresu da vidite prekide kod sebe"
+                action={<Link to="/settings" className="btn primary">Otvori postavke</Link>}>
+                Adrese se čuvaju samo u ovom browseru.
+              </EmptyState>
+            )
+            : statusFilter === 'near' && displayed.length === 0 ? (
+              <EmptyState title="Trenutno nema prekida na vašim adresama">
+                Pratimo {addresses.length} {plural(addresses.length, 'adresu', 'adrese', 'adresa')}.
+              </EmptyState>
+            )
             : displayed.length === 0 ? (
               <div className="tile">
                 <EmptyState title={statusFilter === 'scheduled' ? 'Nema planiranih radova' : 'Sve radi normalno'}>
@@ -159,8 +182,8 @@ export default function Home() {
                     : 'Nema prijavljenih prekida komunalnih usluga u Sarajevu.'}
                 </EmptyState>
               </div>
-            ) : statusFilter === 'all' ? (
-              <div className="card-grid" key="all">{displayed.map((i, n) => <IncidentCard key={i.id} incident={i} index={n} />)}</div>
+            ) : statusFilter === 'all' || statusFilter === 'near' ? (
+              <div className="card-grid" key={statusFilter}>{displayed.map((i, n) => <IncidentCard key={i.id} incident={i} index={n} />)}</div>
             ) : (
               // Aktivno/Planirano: grupisano po preduzeću
               <div className="stack" key={statusFilter}>
@@ -195,6 +218,16 @@ export default function Home() {
                 })}
               </div>
             )}
+
+          {!loading && !failed && reports.length > 0 && statusFilter !== 'scheduled' && (
+            <section className="section" aria-labelledby="reports-title" style={{ marginTop: 28 }}>
+              <div className="section-head">
+                <h2 className="section-title" id="reports-title">Nepotvrđene prijave građana</h2>
+                <span className="section-meta">{reports.length}</span>
+              </div>
+              <div className="card-grid">{reports.map(r => <ReportCard key={r.id} report={r} />)}</div>
+            </section>
+          )}
         </section>
 
         <section className="bento bento-bottom section">
@@ -220,7 +253,7 @@ export default function Home() {
             <div className="tile-label mono">Prijava</div>
             <div>
               <div className="cta-title">Nešto ne radi kod vas?</div>
-              <p>Prijavite prekid koji još nije objavljen. Svaku prijavu provjeravamo ručno.</p>
+              <p>Prijavite prekid koji još nije objavljen. Prikazaćemo je odmah kao nepotvrđenu prijavu.</p>
               <Link to="/report" className="btn accent">
                 <Icon name="plus" size={16} strokeWidth={2.6} /> Prijavi problem <Icon name="arrow" size={16} className="btn-arrow" />
               </Link>

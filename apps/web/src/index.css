@@ -705,3 +705,59 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -.03em; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ── Prijave građana, adrese i pin (U13) ── */
+.badge.unconfirmed { background: transparent; color: var(--text-sec); border: 1.5px dashed var(--text-muted); }
+.report-card { border-style: dashed; cursor: default; }
+.report-card::before { opacity: .45; }
+.report-card:hover { transform: none; }
+.report-card .group-chevron.open { transform: rotate(180deg); }
+.report-card-head { display: block; width: 100%; text-align: left; background: none; border: none; padding: 0; color: inherit; font: inherit; cursor: pointer; }
+.report-card-head > span { display: flex; }
+.report-card-head .inc-card-title { display: -webkit-box; }
+.report-card-more { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); font-size: 14px; color: var(--text-sec); line-height: 1.5; overflow-wrap: anywhere; }
+.report-card-more p + p { margin-top: 6px; }
+.report-card-note { font-size: 13px; font-weight: 700; color: var(--text-muted); }
+.inc-card-origin { color: var(--primary); }
+
+.marker-report { width: 18px; height: 18px; border-radius: 50%; border: 2.5px dashed #fff; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+.marker-home { width: 16px; height: 16px; border-radius: 4px; background: var(--primary); border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+.pin-pick { background: var(--live); width: 30px; height: 30px; }
+
+.pin-map { height: 260px; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; position: relative; z-index: 0; cursor: crosshair; }
+.pin-help { font-size: 13px; color: var(--text-sec); margin-top: 8px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+.addr-search { display: flex; flex-direction: column; gap: 8px; }
+.addr-search-row { display: flex; gap: 8px; }
+.addr-search-row .btn { flex-shrink: 0; }
+.addr-search-msg { font-size: 13px; color: var(--text-sec); }
+.addr-search-msg.error { color: var(--live-text); }
+.addr-results { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--card); }
+.addr-results li + li { border-top: 1px solid var(--divider); }
+.addr-results button { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 10px 12px; background: none; border: none; color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
+.addr-results button:hover { background: var(--divider); }
+.link-btn { background: none; border: none; padding: 0; color: var(--primary); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+
+.addr-list { display: flex; flex-direction: column; gap: 8px; }
+.addr-item { display: flex; align-items: center; gap: 12px; }
+.addr-item-body { flex: 1; min-width: 0; }
+.addr-item-label { font-weight: 700; }
+.addr-item-text { font-size: 13px; color: var(--text-sec); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.notice { font-size: 13px; color: var(--gold-text); background: var(--gold-bg); border-radius: 12px; padding: 10px 12px; }
+
+.source-warning { margin: 10px 0 0; font-size: 13px; line-height: 1.45; color: var(--live-text); background: var(--danger-bg); border: 1px solid var(--danger-border); border-radius: 10px; padding: 8px 10px; }
+
+/* ── Privatnost i uslovi ── */
+.legal { display: flex; flex-direction: column; gap: 22px; padding-bottom: 40px; line-height: 1.6; font-size: 15px; }
+.legal h2 { font-size: 18px; font-weight: 800; margin-bottom: 8px; }
+.legal h3 { font-size: 14px; font-weight: 800; margin: 12px 0 4px; color: var(--text-sec); text-transform: uppercase; letter-spacing: .04em; }
+.legal ul { padding-left: 20px; display: flex; flex-direction: column; gap: 6px; list-style: disc; }
+.legal li::marker { color: var(--text-muted); }
+.legal a { color: var(--primary); font-weight: 600; }
+.legal-meta { font-size: 13px; color: var(--text-muted); }
+.legal-table { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.legal-table th, .legal-table td { text-align: left; vertical-align: top; padding: 10px 12px; border-top: 1px solid var(--divider); }
+.legal-table tr:first-child th, .legal-table tr:first-child td { border-top: none; }
+.legal-table th { font-weight: 700; width: 42%; }
+.legal-link { text-align: center; font-size: 13px; margin-top: 8px; }
+.legal-link a { color: var(--text-sec); }

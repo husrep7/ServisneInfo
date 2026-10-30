@@ -59,7 +59,9 @@ export function IncidentCard({ incident, onClick, selected, action, index = 0 }:
       </div>
       <div className="inc-card-title">{incident.title}</div>
       <div className="inc-card-meta">
-        <span className="inc-card-company">{company.shortName}</span>
+        {incident.origin === 'user'
+          ? <span className="inc-card-company inc-card-origin">Prijava korisnika</span>
+          : <span className="inc-card-company">{company.shortName}</span>}
         {addrs && <span className="addr-text">{addrs}</span>}
       </div>
       {when && <div className="inc-card-when mono"><Icon name="clock" size={13} /> {when}</div>}
