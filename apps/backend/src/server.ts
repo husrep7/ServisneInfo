@@ -13,6 +13,7 @@ import { geocodeRoutes } from "./routes/geocode";
 import { startScraperJobs, runAllScrapers, stopScrapers } from "./jobs/scraper.job";
 import { startStatusJob } from "./jobs/status.job";
 import { startReminderJob } from "./jobs/reminder.job";
+import { startRetentionJob } from "./jobs/retention.job";
 import { computeHealth } from "./services/scraperHealth";
 import { config, checkConfig, corsOriginAllowed, trustProxyHops } from "./config";
 import { errorHandler } from "./errors";
@@ -71,7 +72,7 @@ async function main() {
     );
   });
 
-  const tasks = [...startScraperJobs(), startStatusJob(), startReminderJob()];
+  const tasks = [...startScraperJobs(), startStatusJob(), startReminderJob(), startRetentionJob()];
   handleShutdown(tasks);
 
   await app.listen({ port: config.port, host: "0.0.0.0" });

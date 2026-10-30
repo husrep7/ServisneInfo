@@ -175,6 +175,35 @@ describe('postavke i adrese uređaja nad PostGIS bazom', { skip: skipWithoutDb }
     assert.equal(existing.statusCode, 201);
   });
 
+  test('#26: brisanje uređaja briše adrese, lokaciju i evidenciju, a iz prijava ime i kontakt', async () => {
+    const id = await register({ expoToken: 'ExponentPushToken[brisi]' });
+    const other = await register();
+    await addAddress(id, 'Kuća');
+    await addAddress(other, 'Posao');
+    const { rows: [inc] } = await db.query(`INSERT INTO incidents (type, title) VALUES ('water', 'X') RETURNING id`);
+    await db.query('INSERT INTO sent_notifications (incident_id, token_id, step) VALUES ($1, $2, $3)', [inc.id, id, 'start']);
+    await db.query(
+      `INSERT INTO reports (type, title, address, reporter_name, contact, reporter_key)
+       VALUES ('water', 'Nema vode', 'Ferhadija 1', 'Ime', '061', $1), ('water', 'Nema vode', 'Ferhadija 2', 'Drugi', '062', $2)`,
+      [id, other]
+    );
+
+    const res = await app.inject({ method: 'DELETE', url: '/devices/me', headers: as(id) });
+    assert.equal(res.statusCode, 204);
+
+    assert.equal((await db.query('SELECT 1 FROM device_tokens WHERE id = $1', [id])).rowCount, 0);
+    assert.equal((await db.query('SELECT 1 FROM device_addresses WHERE device_id = $1', [id])).rowCount, 0);
+    assert.equal((await db.query('SELECT 1 FROM sent_notifications WHERE token_id = $1', [id])).rowCount, 0);
+    const { rows } = await db.query('SELECT reporter_key, reporter_name, contact FROM reports ORDER BY address');
+    assert.deepEqual(rows[0], { reporter_key: id, reporter_name: null, contact: null });
+    assert.deepEqual(rows[1], { reporter_key: other, reporter_name: 'Drugi', contact: '062' });
+    // Drugi uređaj ostaje netaknut
+    assert.equal((await listAddresses(other)).length, 1);
+    // Obrisan uređaj više ne postoji
+    assert.equal((await app.inject({ method: 'GET', url: '/devices/me/settings', headers: as(id) })).statusCode, 404);
+    assert.equal((await app.inject({ method: 'DELETE', url: '/devices/me', headers: as(id) })).statusCode, 404);
+  });
+
   test('nevažeći tip u listi isključenih vraća 400', async () => {
     const id = await register();
     const res = await patch(id, { mutedTypes: ['water', 'struja'] });
