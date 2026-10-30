@@ -7,6 +7,10 @@ import Settings from './pages/Settings';
 import Report from './pages/Report';
 import { ThemeProvider } from './context/ThemeContext';
 import NotFound from './pages/NotFound';
+import AdminLogin from './admin/AdminLogin';
+import AdminLayout from './admin/AdminLayout';
+import { ADMIN_NAV } from './admin/nav';
+import AdminPage from './admin/AdminPage';
 import './index.css';
 
 export default function App() {
@@ -20,6 +24,12 @@ export default function App() {
           <Route path="/map"           element={<><MapPage />    <BottomNav /></>} />
           <Route path="/report"        element={<Report />} />
           <Route path="/settings"      element={<><Settings />   <BottomNav /></>} />
+          <Route path="/admin/login"   element={<AdminLogin />} />
+          <Route path="/admin"         element={<AdminLayout />}>
+            {ADMIN_NAV.map(item => item.path
+              ? <Route key={item.path} path={item.path} element={<AdminPage title={item.label} />} />
+              : <Route key="index" index element={<AdminPage title={item.label} />} />)}
+          </Route>
           <Route path="*"              element={<><NotFound />   <BottomNav /></>} />
         </Routes>
       </BrowserRouter>
