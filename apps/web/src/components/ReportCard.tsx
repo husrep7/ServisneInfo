@@ -18,29 +18,30 @@ export function ReportCard({ report, onFocus, selected }: {
 
   return (
     <div className={`inc-card report-card${selected ? ' selected' : ''}`} style={typeStyle(report.type)}>
-      <div className="inc-card-icon"><TypeIcon type={report.type} size={22} /></div>
-      <div className="inc-card-body">
-        <button className="report-card-head" onClick={toggle} aria-expanded={open}>
-          <span className="inc-card-top">
-            <UnconfirmedBadge />
-            <span className="inc-card-company">{TYPE_SERVICE[report.type]} · prijava građana</span>
-          </span>
-          <span className="inc-card-title">{report.title}</span>
-          <span className="inc-card-meta">
-            <span><Icon name="clock" size={14} /> {timeAgo(report.created_at)}</span>
-            <span className="addr"><Icon name="pin" size={14} /> <span className="addr-text">{report.address}</span></span>
-          </span>
-        </button>
-        {open && (
-          <div className="report-card-more">
-            {report.description && <p>{report.description}</p>}
-            <p className="report-card-note">
-              Nepotvrđeno – čeka potvrdu, {reportExpiresIn(report.created_at)}.
-            </p>
-          </div>
-        )}
+      <button className="report-card-head" onClick={toggle} aria-expanded={open}>
+        <span className="inc-card-top">
+          <span className="inc-card-icon"><TypeIcon type={report.type} size={22} /></span>
+          <UnconfirmedBadge />
+        </span>
+        <span className="inc-card-title">{report.title}</span>
+        <span className="inc-card-meta">
+          <span className="inc-card-company">{TYPE_SERVICE[report.type]} · prijava građana</span>
+          <span className="addr-text">{report.address}</span>
+        </span>
+        <span className="inc-card-when mono"><Icon name="clock" size={13} /> {timeAgo(report.created_at)}</span>
+      </button>
+      {open && (
+        <div className="report-card-more">
+          {report.description && <p>{report.description}</p>}
+          <p className="report-card-note">
+            Nepotvrđeno – čeka potvrdu, {reportExpiresIn(report.created_at)}.
+          </p>
+        </div>
+      )}
+      <div className="inc-card-foot">
+        <span />
+        <Icon name="down" size={18} className={`group-chevron${open ? ' open' : ''}`} />
       </div>
-      <Icon name="down" size={18} className={`inc-card-arrow group-chevron${open ? ' open' : ''}`} />
     </div>
   );
 }

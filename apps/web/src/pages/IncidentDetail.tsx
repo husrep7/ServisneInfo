@@ -4,7 +4,7 @@ import { fetchIncident } from '../api';
 import type { Incident } from '../types';
 import { TYPE_LABEL, TYPE_COLOR, fmtDateTime, getCompany, typeStyle } from '../types';
 import { PageHeader } from '../components/PageHeader';
-import { StatusBadge } from '../components/IncidentCard';
+import { IncidentProgress, StatusBadge } from '../components/IncidentCard';
 import { Icon, TypeIcon } from '../components/Icon';
 import { EmptyState } from '../components/States';
 
@@ -68,37 +68,44 @@ export default function IncidentDetail() {
 
       <div className="container detail-layout">
         <div className="stack">
-          <div className="card">
-            <StatusBadge status={incident.status} />
+          <div className="card status-card">
+            <div className="status-card-top">
+              <StatusBadge status={incident.status} />
+              <span className="status-card-area">{incident.municipality}</span>
+            </div>
             {(incident.starts_at || incident.ends_at) && (
               <div className="time-grid">
                 {incident.starts_at && (
                   <div>
                     <div className="time-label">Početak</div>
-                    <div className="time-value">{fmtDateTime(incident.starts_at)}</div>
+                    <div className="time-value mono">{fmtDateTime(incident.starts_at)}</div>
                   </div>
                 )}
                 {incident.ends_at && (
                   <div>
                     <div className="time-label">Kraj</div>
-                    <div className="time-value">{fmtDateTime(incident.ends_at)}</div>
+                    <div className="time-value mono">{fmtDateTime(incident.ends_at)}</div>
                   </div>
                 )}
               </div>
             )}
+            <IncidentProgress incident={incident} bar />
             <div className="detail-company">
               <div className="inc-card-icon"><TypeIcon type={incident.type} size={20} /></div>
               {incident.origin === 'user' ? (
-                <div>
+                <div className="detail-company-name">
                   Prijava korisnika
                   <small>Potvrđeno na osnovu prijava građana, nije službena obavijest preduzeća {company.shortName}.</small>
                 </div>
               ) : (
-                <div>
+                <div className="detail-company-name">
                   {company.shortName}
                   <small>{company.name}</small>
                 </div>
               )}
+              <a href={`tel:${company.phone.replace(/\s/g, '')}`} className="btn secondary sm">
+                <Icon name="phone" size={14} /> Pozovi
+              </a>
             </div>
           </div>
 
@@ -121,8 +128,8 @@ export default function IncidentDetail() {
           )}
 
           {incident.source_url && (
-            <a href={incident.source_url} target="_blank" rel="noreferrer" className="btn block tinted">
-              Otvori zvanični izvor <Icon name="external" size={16} />
+            <a href={incident.source_url} target="_blank" rel="noreferrer" className="btn block primary">
+              Otvori zvanični izvor <Icon name="external" size={16} className="btn-arrow" />
             </a>
           )}
         </div>

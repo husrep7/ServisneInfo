@@ -87,7 +87,7 @@ export default function Report() {
     <div className="page">
       <PageHeader back eyebrow="ServisneInfo" title="Prijavi incident" narrow />
 
-      <div className="container narrow" style={{ marginTop: 20 }}>
+      <div className="container narrow" style={{ marginTop: 24 }}>
         <form onSubmit={handleSubmit} className="card form" noValidate>
           <div>
             <span className="form-label" id="type-label">Šta ne radi?</span>
@@ -98,6 +98,7 @@ export default function Report() {
                   className={`type-btn${form.type === t.value ? ' active' : ''}`}
                   style={typeStyle(t.value)}>
                   <span className="type-btn-icon"><TypeIcon type={t.value} size={20} /></span>
+                  <span className="type-btn-check" aria-hidden="true"><Icon name="check" size={14} strokeWidth={2.6} /></span>
                   {t.label}
                 </button>
               ))}
@@ -175,8 +176,8 @@ export default function Report() {
             <div className="form-error" role="alert"><Icon name="alert" size={18} /> {error}</div>
           )}
 
-          <button type="submit" disabled={loading} className="btn primary block">
-            <Icon name="send" size={17} /> {loading ? 'Slanje...' : 'Pošalji prijavu'}
+          <button type="submit" disabled={loading} className={`btn accent block lg${loading ? ' loading' : ''}`}>
+            <Icon name="send" size={17} className="btn-send" /> {loading ? 'Slanje...' : 'Pošalji prijavu'}
           </button>
 
           <p className="form-hint">Prijava se odmah prikazuje kao nepotvrđena. Moguće je poslati najviše 3 prijave na sat.</p>

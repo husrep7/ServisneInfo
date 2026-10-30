@@ -8,6 +8,7 @@ const UI_PATHS = {
   plus:     ['M12 5v14', 'M5 12h14'],
   back:     ['M19 12H5', 'M12 19l-7-7 7-7'],
   chevron:  ['M9 18l6-6-6-6'],
+  arrow:    ['M5 12h14', 'M13 5l7 7-7 7'],
   down:     ['M6 9l6 6 6-6'],
   pin:      ['M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z', 'M12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'],
   clock:    ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z', 'M12 6v6l4 2'],
@@ -19,6 +20,10 @@ const UI_PATHS = {
   moon:     ['M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z'],
   sun:      ['M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10z', 'M12 1v2', 'M12 21v2', 'M4.22 4.22l1.42 1.42', 'M18.36 18.36l1.42 1.42', 'M1 12h2', 'M21 12h2', 'M4.22 19.78l1.42-1.42', 'M18.36 5.64l1.42-1.42'],
   send:     ['M22 2 11 13', 'M22 2 15 22l-4-9-9-4 20-7z'],
+  mail:     ['M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z', 'm22 6-10 7L2 6'],
+  file:     ['M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z', 'M14 2v6h6', 'M16 13H8', 'M16 17H8'],
+  shield:   ['M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'],
+  info:     ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z', 'M12 16v-4', 'M12 8h.01'],
 } as const;
 
 export type IconName = keyof typeof UI_PATHS;
@@ -44,11 +49,18 @@ export function TypeIcon({ type, ...rest }: IconProps & { type: IncidentType }) 
 
 export function BrandMark({ size = 28 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
-      <rect width="32" height="32" rx="9" fill="var(--primary)" />
-      <rect x="7" y="15" width="4" height="10" rx="1.5" fill="#fff" opacity=".75" />
-      <rect x="14" y="9" width="4" height="16" rx="1.5" fill="#fff" />
-      <rect x="21" y="18" width="4" height="7" rx="1.5" fill="#fff" opacity=".75" />
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" className="brand-mark">
+      <defs>
+        <linearGradient id="bm" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#FF4D2E" />
+          <stop offset=".55" stopColor="#FFB020" />
+          <stop offset="1" stopColor="#5B7CFF" />
+        </linearGradient>
+      </defs>
+      <rect width="32" height="32" rx="9" fill="url(#bm)" />
+      <rect x="7" y="15" width="4" height="10" rx="1.5" fill="#fff" opacity=".7" />
+      <rect x="14" y="8" width="4" height="17" rx="1.5" fill="#fff" />
+      <rect x="21" y="18" width="4" height="7" rx="1.5" fill="#fff" opacity=".7" />
     </svg>
   );
 }

@@ -204,3 +204,26 @@ export function timeAgo(iso: string): string {
   if (h < 24)   return `prije ${h} h`;
   return `prije ${Math.floor(h / 24)} d`;
 }
+
+// "3 h 20 min", "45 min", "2 d"
+export function fmtDuration(ms: number): string {
+  const min = Math.max(1, Math.round(ms / 60000));
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60), m = min % 60;
+  if (h < 24) return m ? `${h} h ${m} min` : `${h} h`;
+  return `${Math.round(h / 24)} d`;
+}
+
+// Napredak prekida za traku na kartici: aktivni → koliko je prošlo, planirani → kad počinje
+export function incidentProgress(i: Incident, now = Date.now()): { pct: number | null; label: string } | null {
+  const start = i.starts_at ? new Date(i.starts_at).getTime() : null;
+  const end   = i.ends_at   ? new Date(i.ends_at).getTime()   : null;
+  if (i.status === 'scheduled') {
+    return start && start > now ? { pct: null, label: `Počinje za ${fmtDuration(start - now)}` } : null;
+  }
+  if (i.status !== 'active') return null;
+  if (!end) return { pct: null, label: 'Kraj nije najavljen' };
+  if (end <= now) return { pct: 100, label: 'Trebalo je završiti' };
+  const pct = start && end > start ? Math.min(100, Math.max(0, ((now - start) / (end - start)) * 100)) : null;
+  return { pct, label: `Još ${fmtDuration(end - now)}` };
+}
