@@ -1,19 +1,26 @@
 import cron from 'node-cron';
 import { config } from '../config';
 import { SCRAPERS, type ScraperResult } from '../scrapers/index';
+import { checkScraperHealth } from '../services/scraperHealth';
 
 let running: Promise<PromiseSettledResult<ScraperResult>[]> | null = null;
 
 // Jedno pokretanje u isto vrijeme — cron, inicijalni prolaz i /scrape-now dijele isti run
 export function runAllScrapers(): Promise<PromiseSettledResult<ScraperResult>[]> {
-  running ??= Promise.allSettled(SCRAPERS.map(s => s.run())).finally(() => { running = null; });
+  running ??= Promise.allSettled(SCRAPERS.map(s => s.run()))
+    .then(async (results) => {
+      // Nakon svakog prolaza: alarm ako je neki izvor prestao raditi ili se oporavio (#19)
+      await checkScraperHealth().catch((err) => console.error('[Scraper alert] provjera nije uspjela:', err));
+      return results;
+    })
+    .finally(() => { running = null; });
   return running;
 }
 
-export function startScraperJobs() {
+export function startScraperJobs(): cron.ScheduledTask[] {
   const interval = config.scraperIntervalMinutes;
 
-  cron.schedule(`*/${interval} * * * *`, async () => {
+  const task = cron.schedule(`*/${interval} * * * *`, async () => {
     if (running) {
       console.log('Previous scraper run still in progress — skipping');
       return;
@@ -33,8 +40,18 @@ export function startScraperJobs() {
   console.log(`   Sources: ${SCRAPERS.map(s => s.name).join(', ')}`);
 
   // Run on startup after 5s delay (gives DB time to be ready)
-  setTimeout(async () => {
+  initialRun = setTimeout(async () => {
     console.log('Running initial scraper pass...');
     await runAllScrapers();
   }, 5000);
+  return [task];
+}
+
+let initialRun: ReturnType<typeof setTimeout> | undefined;
+
+// Graceful shutdown (#16): ne počinji nove prolaze, a tekući sačekaj najviše timeoutMs
+export async function stopScrapers(timeoutMs: number): Promise<void> {
+  clearTimeout(initialRun);
+  if (!running) return;
+  await Promise.race([running, new Promise((r) => setTimeout(r, timeoutMs))]);
 }

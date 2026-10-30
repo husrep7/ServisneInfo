@@ -14,8 +14,14 @@ cp .env.example apps/backend/.env
 
 Postgres iz docker-compose radi na portu **5434** (`.env.example` je već podešen).
 
+U produkciji postavite `NODE_ENV=production`. Server tada odbija start ako nedostaje `DATABASE_URL`, `REDIS_URL`, `ADMIN_TOKEN`, `IP_HASH_SALT` ili `CORS_ORIGINS`, i ispiše šta tačno nedostaje.
+
+- `CORS_ORIGINS` — web domeni koji smiju zvati API, npr. `https://servisneinfo.ba,https://*.vercel.app`. Mobilna aplikacija ne šalje `Origin`, pa na nju ne utiče.
+- Health check za hosting: `GET /health` (baza i Redis, 503 kad nešto ne radi) i `GET /health/live` (samo proces).
+
 Za prijave građana u produkciji postavite i:
 - `IP_HASH_SALT` — tajna so za hash IP adrese prijavioca (`openssl rand -hex 32`). Sirova IP adresa se ne čuva.
+- `ALERT_WEBHOOK_URL` — Slack (ili kompatibilan) incoming webhook za alarm kad neki scraper prestane raditi ili tiho vraća 0 obavijesti. Bez njega se alarm samo loguje.
 - `TRUST_PROXY_HOPS` — tačan broj proxyja ispred servera (npr. `1` iza jednog load balancera). Sa `0` server vidi adresu proxyja za sve korisnike; s prevelikim brojem klijent može lažirati IP kroz `X-Forwarded-For`.
 
 ## 2. Pokrenite bazu i Redis
@@ -93,7 +99,8 @@ Kontejner pri startu prvo pokrene migracije (`node dist/db/migrate.js`), pa serv
 | GET / PATCH | /devices/me/settings | Postavke uređaja: lokacija, podsjetnik, isključeni tipovi (header `X-Device-Token`) |
 | GET / POST / DELETE | /devices/me/addresses | Adrese uređaja, najviše 5 (header `X-Device-Token`) |
 | GET | /geocode?q= | Pretraga adrese u Kantonu Sarajevo (limit 10/min po IP-u) |
-| GET | /health | Health check |
+| GET | /health, /health/ready | Health check: baza i Redis (503 kad nešto ne radi) |
+| GET | /health/live | Proces je živ |
 | POST | /reports | Prijava problema od korisnika (uvijek 201, i kad je tiho odbačena) |
 | GET | /reports/public | Nepotvrđene prijave iz zadnjih 6 sati, bez ličnih podataka |
 | GET | /admin/reports?status= | Lista prijava sa ličnim podacima (admin, `Authorization: Bearer $ADMIN_TOKEN`) |

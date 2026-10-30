@@ -71,12 +71,13 @@ export async function updateStatuses(now: Date = new Date()): Promise<void> {
   }
 }
 
-export function startStatusJob(): void {
+export function startStatusJob(): cron.ScheduledTask {
   updateStatuses().catch(console.error);
 
-  cron.schedule('*/5 * * * *', () => {
+  const task = cron.schedule('*/5 * * * *', () => {
     updateStatuses().catch(console.error);
   });
 
   console.log('✅ Status job scheduled every 5 minutes');
+  return task;
 }
