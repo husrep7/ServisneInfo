@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { BottomNav } from './components/BottomNav';
+import { AppNav } from './components/AppNav';
 import Home from './pages/Home';
 import IncidentDetail from './pages/IncidentDetail';
 import MapPage from './pages/MapPage';
@@ -18,19 +18,20 @@ export default function App() {
     <ThemeProvider>
     <div style={{ minHeight: '100vh' }}>
       <BrowserRouter>
+        <AppNav />
         <Routes>
-          <Route path="/"              element={<><Home />       <BottomNav /></>} />
+          <Route path="/"              element={<Home />} />
           <Route path="/incidents/:id" element={<IncidentDetail />} />
-          <Route path="/map"           element={<><MapPage />    <BottomNav /></>} />
+          <Route path="/map"           element={<MapPage />} />
           <Route path="/report"        element={<Report />} />
-          <Route path="/settings"      element={<><Settings />   <BottomNav /></>} />
+          <Route path="/settings"      element={<Settings />} />
           <Route path="/admin/login"   element={<AdminLogin />} />
           <Route path="/admin"         element={<AdminLayout />}>
             {ADMIN_NAV.map(item => item.path
               ? <Route key={item.path} path={item.path} element={<AdminPage title={item.label} />} />
               : <Route key="index" index element={<AdminPage title={item.label} />} />)}
           </Route>
-          <Route path="*"              element={<><NotFound />   <BottomNav /></>} />
+          <Route path="*"              element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </div>

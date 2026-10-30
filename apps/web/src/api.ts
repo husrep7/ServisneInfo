@@ -7,13 +7,26 @@ const WS_URL  = API_URL.replace(/^http/, 'ws') + '/ws';
 
 const api = axios.create({ baseURL: API_URL });
 
+// Lokalni demo bez backenda (VITE_DEMO=1) — vidi demo.ts
+const DEMO = import.meta.env.VITE_DEMO === '1';
+
 export async function fetchIncidents(params?: Record<string, string | number | boolean>): Promise<Incident[]> {
+  if (DEMO) {
+    const { DEMO_INCIDENTS } = await import('./demo');
+    return DEMO_INCIDENTS.filter(i => !params?.status || params.status === 'all' || i.status === params.status);
+  }
   // Bez filtera status-a — API po defaultu vraća active + scheduled za danas/budućnost
   const { data } = await api.get<Incident[]>('/incidents', { params: { status: 'all', today: true, ...params } });
   return data;
 }
 
 export async function fetchIncident(id: string): Promise<Incident> {
+  if (DEMO) {
+    const { DEMO_INCIDENTS } = await import('./demo');
+    const found = DEMO_INCIDENTS.find(i => i.id === id);
+    if (!found) throw new Error('not found');
+    return found;
+  }
   const { data } = await api.get<Incident>(`/incidents/${id}`);
   return data;
 }
@@ -27,6 +40,7 @@ export interface ScraperStatus {
 }
 
 export async function fetchScraperStatus(): Promise<ScraperStatus[]> {
+  if (DEMO) return (await import('./demo')).DEMO_SCRAPERS;
   const { data } = await api.get<ScraperStatus[]>('/scraper-status');
   return data;
 }
@@ -41,11 +55,13 @@ export interface ReportInput {
 }
 
 export async function postReport(report: ReportInput): Promise<void> {
+  if (DEMO) return;
   await api.post('/reports', report);
 }
 
 // WebSocket s automatskim ponovnim spajanjem (exponential backoff, max 30s)
 export function connectWS(onUpdate: () => void): { close: () => void } {
+  if (DEMO) return { close: () => {} };
   let ws: WebSocket | null = null;
   let retry = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;

@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+
 export type IncidentType = 'water' | 'electricity' | 'gas' | 'heating' | 'internet';
 export type IncidentStatus = 'active' | 'resolved' | 'scheduled';
 
@@ -102,6 +104,11 @@ export const COMPANIES: Company[] = [
 export function getCompany(type: IncidentType): Company {
   return COMPANIES.find(c => c.type === type) ?? COMPANIES[0];
 }
+// Kratki naziv usluge za pregled stanja
+export const TYPE_SERVICE: Record<IncidentType, string> = {
+  water: 'Voda', electricity: 'Struja', gas: 'Gas', heating: 'Grijanje', internet: 'Internet',
+};
+
 export const TYPE_ICON: Record<IncidentType, string> = {
   water: '💧', electricity: '⚡', gas: '🔥', heating: '🏠', internet: '🌐',
 };
@@ -113,6 +120,11 @@ export const TYPE_BG: Record<IncidentType, string> = {
   water: 'var(--water-bg)', electricity: 'var(--electricity-bg)', gas: 'var(--gas-bg)',
   heating: 'var(--heating-bg)', internet: 'var(--internet-bg)',
 };
+
+// CSS varijable --type-color / --type-bg za komponente obojene po tipu usluge
+export function typeStyle(type: IncidentType): CSSProperties {
+  return { '--type-color': TYPE_COLOR[type], '--type-bg': TYPE_BG[type] } as CSSProperties;
+}
 
 const TZ = 'Europe/Sarajevo';
 
@@ -132,4 +144,41 @@ export function fmtDateTime(iso: string | null): string {
   if (!iso) return '';
   const time = fmtTime(iso);
   return time ? `${fmtDate(iso)} u ${time}` : fmtDate(iso);
+}
+
+// Kalendarski dan u Sarajevu (YYYY-MM-DD) — za "Danas"/"Sutra"
+function sarajevoDay(d: Date): string {
+  return d.toLocaleDateString('en-CA', { timeZone: TZ });
+}
+
+export function dayLabel(iso: string): string {
+  const d = new Date(iso);
+  const now = Date.now();
+  const key = sarajevoDay(d);
+  if (key === sarajevoDay(new Date(now)))          return 'Danas';
+  if (key === sarajevoDay(new Date(now + 864e5)))  return 'Sutra';
+  if (key === sarajevoDay(new Date(now - 864e5)))  return 'Jučer';
+  return d.toLocaleDateString('hr', { day: 'numeric', month: 'numeric', timeZone: TZ });
+}
+
+// "Danas 08:00 – 13:00", "Sutra 22:00 – 31. 10. 06:00"
+export function fmtWhen(startsAt: string | null, endsAt: string | null): string {
+  if (!startsAt) return '';
+  const st = fmtTime(startsAt);
+  let out = dayLabel(startsAt) + (st ? ` ${st}` : '');
+  if (endsAt) {
+    const et = fmtTime(endsAt);
+    const sameDay = sarajevoDay(new Date(startsAt)) === sarajevoDay(new Date(endsAt));
+    if (!sameDay) out += ` – ${dayLabel(endsAt)}${et ? ` ${et}` : ''}`;
+    else if (et) out += ` – ${et}`;
+  }
+  return out;
+}
+
+// Bosanska množina: 1 prekid, 2–4 prekida, 5+ prekida
+export function plural(n: number, one: string, few: string, many: string): string {
+  const m10 = n % 10, m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return one;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
+  return many;
 }
