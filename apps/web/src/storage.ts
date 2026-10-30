@@ -45,3 +45,11 @@ export function writeString(key: string, value: string): boolean {
     return false;
   }
 }
+
+export function removeKey(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // blokiran storage: nema ničega za brisanje
+  }
+}

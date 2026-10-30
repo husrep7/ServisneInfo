@@ -111,6 +111,10 @@ export default function Settings() {
           <p>Primijetili ste problem koji nije objavljen? Javite nam odmah.</p>
           <Link to="/report" className="btn danger"><Icon name="plus" size={16} /> Prijavi incident</Link>
         </div>
+
+        <p className="legal-link">
+          <Link to="/privatnost">Privatnost i uslovi korištenja</Link>
+        </p>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { postReport } from '../api';
 import { reporterId } from '../addresses';
 import { PinPicker, type LatLng } from '../components/PinPicker';
@@ -159,7 +159,8 @@ export default function Report() {
 
           <div className="form-divider">Vaši podaci (opciono)</div>
           <p className="form-hint" style={{ textAlign: 'left', marginTop: -8 }}>
-            Ime i kontakt vidi samo moderator, nikad se ne objavljuju.
+            Ime i kontakt vidi samo moderator, nikad se ne objavljuju, i brišu se nakon 7 dana.{' '}
+            <Link to="/privatnost">Više o privatnosti</Link>
           </p>
 
           <Field label="Ime i prezime" optional>
