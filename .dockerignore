@@ -4,4 +4,7 @@
 **/.env.*
 !**/.env.example
 .git
-apps/web
+apps/web/*
+!apps/web/package.json
+apps/mobile/*
+!apps/mobile/package.json

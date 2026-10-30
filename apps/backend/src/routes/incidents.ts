@@ -46,7 +46,7 @@ export async function incidentsRoutes(app: FastifyInstance) {
       const limitIdx = p.indexOf(query.limit) + 1;
       const sql = `
         SELECT id, type, title, description, source_url,
-               affected_addresses, municipality, starts_at, ends_at, status, created_at,
+               affected_addresses, municipality, starts_at, ends_at, status, origin, created_at,
                ST_AsGeoJSON(affected_area) AS area_geojson,
                ST_Distance(
                  ST_SetSRID(ST_MakePoint($${buildParams(query.lng).length}, $${buildParams(query.lng, query.lat).length}), 4326)::geography,
@@ -77,7 +77,7 @@ export async function incidentsRoutes(app: FastifyInstance) {
 
     const sql = `
       SELECT id, type, title, description, source_url,
-             affected_addresses, municipality, starts_at, ends_at, status, created_at,
+             affected_addresses, municipality, starts_at, ends_at, status, origin, created_at,
              ST_AsGeoJSON(affected_area) AS area_geojson
       FROM incidents
       WHERE 1=1 ${statusFilter} ${todayFilter} ${typePlaceholder}
