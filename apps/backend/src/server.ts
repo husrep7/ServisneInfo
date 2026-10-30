@@ -7,6 +7,7 @@ import { incidentsRoutes } from "./routes/incidents";
 import { devicesRoutes } from "./routes/devices";
 import { websocketRoutes } from "./routes/websocket";
 import { reportsRoutes } from "./routes/reports";
+import { adminRoutes } from "./routes/admin";
 import { startScraperJobs, runAllScrapers } from "./jobs/scraper.job";
 import { startStatusJob } from "./jobs/status.job";
 import { config, trustProxyHops } from "./config";
@@ -35,6 +36,7 @@ async function main() {
   await app.register(devicesRoutes);
   await app.register(websocketRoutes);
   await app.register(reportsRoutes);
+  await app.register(adminRoutes);
 
   app.get("/health", async () => ({ status: "ok", ts: new Date().toISOString() }));
 

@@ -48,7 +48,7 @@ export interface NewReport {
 // Kad U3 (#43) uvede slanje po koraku, ovdje se mijenja samo notify.
 export const reportEffects = {
   notify:  (incident: IncidentRow) => notifyDevicesInArea(incident),
-  publish: (incidentId: string) => publishIncidentEvent('new', incidentId),
+  publish: (event: 'new' | 'resolved', incidentId: string) => publishIncidentEvent(event, incidentId),
 };
 
 const TYPE_TITLE: Record<IncidentType, string> = {
@@ -237,7 +237,7 @@ export async function submitReport(r: NewReport): Promise<{ id: string; suppress
   if (result.outcome.kind === 'confirmed') {
     const incident = result.outcome.incident;
     // Prijava je već sačuvana — greška u pushu ili Redisu ne smije oboriti odgovor
-    await reportEffects.publish(incident.id).catch((err) => console.warn('[reports] publish failed:', String(err)));
+    await reportEffects.publish('new', incident.id).catch((err) => console.warn('[reports] publish failed:', String(err)));
     await reportEffects.notify(incident).catch((err) => console.error('[reports] notify failed:', String(err)));
   }
   return result;

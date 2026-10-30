@@ -1,7 +1,5 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { db } from '../db';
-import { requireAdmin } from '../auth';
 import { hashIp, listPublicReports, submitReport } from '../services/reports';
 
 const CreateSchema = z.object({
@@ -40,12 +38,4 @@ export async function reportsRoutes(app: FastifyInstance) {
 
   // Nepotvrđene prijave za listu i mapu — bez imena, kontakta, IP hasha i ID-a prijavioca
   app.get('/reports/public', async () => listPublicReports());
-
-  // Sadrži lične podatke prijavitelja — samo za admina
-  app.get('/reports', { preHandler: requireAdmin }, async () => {
-    const { rows } = await db.query(
-      `SELECT * FROM reports ORDER BY created_at DESC LIMIT 100`
-    );
-    return rows;
-  });
 }
