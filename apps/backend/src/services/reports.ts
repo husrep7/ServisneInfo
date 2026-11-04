@@ -2,7 +2,7 @@ import { createHmac, randomBytes } from 'crypto';
 import type { PoolClient } from 'pg';
 import { db } from '../db';
 import { config } from '../config';
-import { notifyDevicesInArea, IncidentRow } from './notifications';
+import { notifyIncident, IncidentRow } from './notifications';
 import { publishIncidentEvent } from '../routes/websocket';
 import type { IncidentType } from '../scrapers/base';
 
@@ -47,8 +47,9 @@ export interface NewReport {
 // Efekti nakon potvrde — testovi ih zamjenjuju da ne šalju push i ne traže Redis.
 // Kad U3 (#43) uvede slanje po koraku, ovdje se mijenja samo notify.
 export const reportEffects = {
-  notify:  (incident: IncidentRow) => notifyDevicesInArea(incident),
-  publish: (incidentId: string) => publishIncidentEvent('new', incidentId),
+  // Potvrđena prijava je prekid koji je već aktivan (R17), pa ide korak "početak"
+  notify:  (incident: IncidentRow) => notifyIncident(incident.id, 'start').then(() => undefined),
+  publish: (event: 'new' | 'resolved', incidentId: string) => publishIncidentEvent(event, incidentId),
 };
 
 const TYPE_TITLE: Record<IncidentType, string> = {
@@ -237,7 +238,7 @@ export async function submitReport(r: NewReport): Promise<{ id: string; suppress
   if (result.outcome.kind === 'confirmed') {
     const incident = result.outcome.incident;
     // Prijava je već sačuvana — greška u pushu ili Redisu ne smije oboriti odgovor
-    await reportEffects.publish(incident.id).catch((err) => console.warn('[reports] publish failed:', String(err)));
+    await reportEffects.publish('new', incident.id).catch((err) => console.warn('[reports] publish failed:', String(err)));
     await reportEffects.notify(incident).catch((err) => console.error('[reports] notify failed:', String(err)));
   }
   return result;

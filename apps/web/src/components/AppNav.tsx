@@ -5,10 +5,14 @@ import { BrandMark, Icon } from './Icon';
 import type { IconName } from './Icon';
 
 const LINKS: { to: string; label: string; icon: IconName }[] = [
-  { to: '/',         label: 'Početna', icon: 'home' },
+  { to: '/',         label: 'Blizu',   icon: 'pin'  },
+  { to: '/prekidi',  label: 'Prekidi', icon: 'grid' },
   { to: '/map',      label: 'Mapa',    icon: 'map'  },
   { to: '/settings', label: 'Profil',  icon: 'user' },
 ];
+
+// Ekrani prije ulaska nemaju navigaciju
+const AUTH_PATHS = ['/prijava', '/registracija', '/zaboravljena-lozinka', '/nova-lozinka'];
 
 function TopClock() {
   const now = new Date(useNow(1000));
@@ -20,7 +24,7 @@ function TopClock() {
 export function AppNav() {
   const { pathname } = useLocation();
   const { theme, toggle } = useTheme();
-  if (pathname.startsWith('/admin')) return null;
+  if (pathname.startsWith('/admin') || AUTH_PATHS.includes(pathname)) return null;
 
   const cls = ({ isActive }: { isActive: boolean }) => `dock-link${isActive ? ' active' : ''}`;
   const link = (l: typeof LINKS[number]) => (

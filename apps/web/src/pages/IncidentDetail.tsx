@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { fetchIncident } from '../api';
 import type { Incident } from '../types';
-import { TYPE_LABEL, TYPE_COLOR, fmtDateTime, getCompany, typeStyle } from '../types';
+import { TYPE_LABEL, TYPE_COLOR, fmtDateTime, getCompany, incidentHeadline, incidentStreets, incidentWhere, typeStyle } from '../types';
 import { PageHeader } from '../components/PageHeader';
 import { IncidentProgress, StatusBadge } from '../components/IncidentCard';
 import { Icon, TypeIcon } from '../components/Icon';
@@ -58,10 +58,11 @@ export default function IncidentDetail() {
   }
 
   const company = getCompany(incident.type);
+  const streets = incidentStreets(incident);
 
   return (
     <div className="page" style={typeStyle(incident.type)}>
-      <PageHeader back title={incident.title}
+      <PageHeader back title={`${incidentHeadline(incident)} · ${incidentWhere(incident)}`}
         eyebrow={<span style={{ color: 'var(--type-color)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <TypeIcon type={incident.type} size={14} /> {TYPE_LABEL[incident.type]}
         </span>} />
@@ -109,22 +110,24 @@ export default function IncidentDetail() {
             </div>
           </div>
 
-          {incident.affected_addresses?.length ? (
+          {streets.length > 0 && (
             <div className="card">
-              <div className="card-title">Zahvaćene ulice</div>
+              <div className="card-title">Zahvaćene ulice · {streets.length}</div>
               <div className="chips">
-                {incident.affected_addresses.map(a => (
+                {streets.map(a => (
                   <span key={a} className="chip"><Icon name="pin" size={14} /> {a}</span>
                 ))}
               </div>
             </div>
-          ) : null}
+          )}
 
-          {incident.description && (
-            <div className="card">
-              <div className="card-title">Opis</div>
-              <p className="detail-description">{incident.description}</p>
-            </div>
+          {/* Cijeli tekst izvora samo na zahtjev — sažetak gore je dovoljan za većinu */}
+          {(incident.description || incident.title) && (
+            <details className="card detail-source">
+              <summary className="card-title">Cijela obavijest preduzeća</summary>
+              <p className="detail-description"><strong>{incident.title}</strong></p>
+              {incident.description && <p className="detail-description">{incident.description}</p>}
+            </details>
           )}
 
           {incident.source_url && (

@@ -11,7 +11,7 @@ import { Segmented } from '../components/Segmented';
 import { EmptyState, LoadError, SkeletonList } from '../components/States';
 import { useNow } from '../hooks';
 import type { Incident, IncidentType } from '../types';
-import { COMPANIES, TYPE_SERVICE, dayLabel, fmtTime, getCompany, plural, typeStyle } from '../types';
+import { COMPANIES, TYPE_SERVICE, dayLabel, fmtTime, getCompany, incidentHeadline, incidentWhere, plural, typeStyle } from '../types';
 
 const DANI    = ['Nedjelja', 'Ponedjeljak', 'Utorak', 'Srijeda', 'Četvrtak', 'Petak', 'Subota'];
 const MJESECI = ['januar', 'februar', 'mart', 'april', 'maj', 'juni', 'juli', 'august', 'septembar', 'oktobar', 'novembar', 'decembar'];
@@ -239,7 +239,7 @@ export default function Home() {
                   <li key={i.id} style={typeStyle(i.type)}>
                     <Link to={`/incidents/${i.id}`} className="soon-item">
                       <span className="soon-when mono">{dayLabel(i.starts_at!)} {fmtTime(i.starts_at)}</span>
-                      <span className="soon-title">{i.title}</span>
+                      <span className="soon-title">{incidentHeadline(i)} · {incidentWhere(i)}</span>
                       <span className="soon-company"><TypeIcon type={i.type} size={13} /> {getCompany(i.type).shortName}</span>
                       <Icon name="arrow" size={16} className="soon-arrow" />
                     </Link>

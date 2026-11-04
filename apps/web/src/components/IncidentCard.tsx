@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { clickable } from '../a11y';
 import { useNow } from '../hooks';
 import type { Incident } from '../types';
-import { getCompany, fmtWhen, fmtDate, incidentProgress, typeStyle } from '../types';
+import { getCompany, fmtWhen, fmtDate, incidentHeadline, incidentProgress, incidentWhere, typeStyle } from '../types';
 import { Icon, TypeIcon } from './Icon';
 
 export function StatusBadge({ status }: { status: Incident['status'] }) {
@@ -47,7 +47,6 @@ export function IncidentCard({ incident, onClick, selected, action, index = 0 }:
   const navigate = useNavigate();
   const company  = getCompany(incident.type);
   const when     = fmtWhen(incident.starts_at, incident.ends_at) || fmtDate(incident.created_at);
-  const addrs    = incident.affected_addresses?.slice(0, 2).join(', ');
 
   return (
     <div className={`inc-card reveal${selected ? ' selected' : ''}`}
@@ -57,12 +56,13 @@ export function IncidentCard({ incident, onClick, selected, action, index = 0 }:
         <div className="inc-card-icon"><TypeIcon type={incident.type} size={22} /></div>
         <StatusBadge status={incident.status} />
       </div>
-      <div className="inc-card-title">{incident.title}</div>
+      {/* Kratko: šta nema i gdje; cijeli tekst izvora je na detalju */}
+      <div className="inc-card-title">{incidentHeadline(incident)}</div>
+      <div className="inc-card-where">{incidentWhere(incident)}</div>
       <div className="inc-card-meta">
         {incident.origin === 'user'
           ? <span className="inc-card-company inc-card-origin">Prijava korisnika</span>
           : <span className="inc-card-company">{company.shortName}</span>}
-        {addrs && <span className="addr-text">{addrs}</span>}
       </div>
       {when && <div className="inc-card-when mono"><Icon name="clock" size={13} /> {when}</div>}
       <div className="inc-card-foot">

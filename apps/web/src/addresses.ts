@@ -68,10 +68,12 @@ function inRing(lat: number, lng: number, ring: number[][]): boolean {
 }
 
 export function zoneContains(incident: Incident, lat: number, lng: number): boolean {
-  const poly = incident.area_geojson;
-  if (!poly || poly.type !== 'Polygon' || !poly.coordinates.length) return false;
-  const [outer, ...holes] = poly.coordinates;
-  return inRing(lat, lng, outer) && !holes.some(h => inRing(lat, lng, h));
+  const area = incident.area_geojson;
+  if (!area) return false;
+  // Zona službene obavijesti ima više dijelova (krug oko svake ulice)
+  const polygons = area.type === 'Polygon' ? [area.coordinates] : area.type === 'MultiPolygon' ? area.coordinates : [];
+  return polygons.some(([outer, ...holes]) =>
+    !!outer && inRing(lat, lng, outer) && !holes.some(h => inRing(lat, lng, h)));
 }
 
 export function isNearMe(incident: Incident, addresses: SavedAddress[]): boolean {
