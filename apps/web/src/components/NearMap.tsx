@@ -5,7 +5,7 @@ import type { NearbyIncident, Place, RouteOption } from '../api';
 import type { GeoPoint } from '../geolocation';
 import { TYPE_COLOR, TYPE_OUTAGE, incidentWhere } from '../types';
 import { PLACE_META } from './placeMeta';
-import { bankOf, placeTitle } from './banks';
+import { brandOf, placeTitle } from './brands';
 
 // Mapa početne: ja, zone prekida oko mene, objekti i rute. Leaflet radi imperativno, pa se
 // slojevi brišu i crtaju ponovo kad se promijene podaci.
@@ -75,14 +75,14 @@ export function NearMap({ me, incidents, places, routes, selectedPlace, onPlaceC
     for (const p of places) {
       const meta = PLACE_META[p.category];
       const warn = p.outages.length > 0;
-      // Logo banke dolazi iz naše liste (banks.ts), ne iz OSM teksta, pa je siguran za HTML
-      const bank = bankOf(p);
-      const inner = bank ? `<img src="${bank.logo}" alt="">` : meta.emoji;
+      // Logo dolazi iz naše liste (brands.ts), ne iz OSM teksta, pa je siguran za HTML
+      const brand = brandOf(p);
+      const inner = brand ? `<img src="${brand.logo}" alt="">` : meta.emoji;
       const icon = L.divIcon({
         className: '',
         iconSize: [30, 30],
         iconAnchor: [15, 15],
-        html: `<div class="place-pin${bank ? ' logo' : ''}${p.id === selectedPlace ? ' on' : ''}${warn ? ' warn' : ''}" style="--pc:${meta.color}">${inner}</div>`,
+        html: `<div class="place-pin${brand ? ' logo' : ''}${p.id === selectedPlace ? ' on' : ''}${warn ? ' warn' : ''}" style="--pc:${meta.color}">${inner}</div>`,
       });
       L.marker([p.lat, p.lng], { icon, title: placeTitle(p) })
         .on('click', () => onPlaceClick?.(p))

@@ -11,7 +11,7 @@ import { useAddresses } from '../addresses';
 import { firstName, useSession } from '../session';
 import { NearMap } from '../components/NearMap';
 import { PLACE_META, PLACE_ORDER, directionsUrl } from '../components/placeMeta';
-import { bankOf, placeTitle } from '../components/banks';
+import { brandOf, placeTitle } from '../components/brands';
 import { Icon, TypeIcon } from '../components/Icon';
 import { TYPE_OUTAGE, fmtDistance, fmtDuration, fmtWhen, incidentWhere, plural, typeStyle } from '../types';
 import './near.css';
@@ -45,12 +45,12 @@ function PlaceRow({ p, selected, onSelect, onRoute }: {
   p: Place; selected: boolean; onSelect: () => void; onRoute: () => void;
 }) {
   const meta = PLACE_META[p.category];
-  const bank = bankOf(p);
+  const brand = brandOf(p);
   return (
     <li className={`place-row${selected ? ' on' : ''}`} style={{ '--pc': meta.color } as CSSProperties}>
       <button className="place-main" onClick={onSelect}>
-        {bank
-          ? <span className="place-emoji place-logo"><img src={bank.logo} alt="" /></span>
+        {brand
+          ? <span className="place-emoji place-logo"><img src={brand.logo} alt="" /></span>
           : <span className="place-emoji" aria-hidden="true">{meta.emoji}</span>}
         <span className="place-body">
           <span className="place-name">{placeTitle(p)}</span>
