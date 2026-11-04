@@ -15,6 +15,7 @@ const prodEnv = {
   CORS_ORIGINS: 'https://servisneinfo.ba',
   TRUST_PROXY_HOPS: '1',
   ANTHROPIC_API_KEY: 'k', EXPO_ACCESS_TOKEN: 'k', ALERT_WEBHOOK_URL: 'https://hooks.example/x',
+  GOOGLE_CLIENT_ID: 'id.apps.googleusercontent.com', RESEND_API_KEY: 'k',
 };
 
 test('checkConfig: ispravna produkcijska konfiguracija nema grešaka ni upozorenja', () => {

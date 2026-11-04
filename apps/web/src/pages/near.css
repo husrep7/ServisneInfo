@@ -1,0 +1,218 @@
+/* Početna "Blizu mene": gdje sam, šta je u mojoj ulici, objekti u blizini i ruta */
+.near-page { padding-top: 8px; }
+
+.near-hero { padding: 18px 0 6px; }
+.near-greet { font-size: 14px; font-weight: 600; color: var(--text-sec); }
+.near-loc { margin-top: 8px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.near-loc-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--text-muted);
+  flex: none;
+}
+.near-loc-dot.ok { background: #4F6BFF; box-shadow: 0 0 0 5px rgba(79, 107, 255, .18); }
+.near-loc-dot.asking { background: var(--gold); animation: blink 1.4s infinite; }
+.near-loc-dot.denied, .near-loc-dot.unavailable { background: var(--live); }
+.near-loc-text { display: grid; min-width: 0; flex: 1; }
+.near-loc-text strong { font-size: clamp(22px, 3.4vw, 32px); letter-spacing: -.035em; line-height: 1.1; font-weight: 800; }
+.near-loc-text small { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
+
+.near-search {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 16px;
+  border-radius: 18px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  color: var(--text-muted);
+}
+.near-search:focus-within { border-color: var(--primary); }
+.near-search input {
+  flex: 1; min-width: 0;
+  border: none; outline: none; background: none;
+  font: inherit; font-size: 16px; color: var(--text);
+  min-height: 42px;
+}
+.near-search input:focus-visible { outline: none; }
+.near-search-x { font-size: 22px; line-height: 1; padding: 0 6px; color: var(--text-muted); }
+.near-quick, .near-saved { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.near-quick .chip-btn, .near-saved .chip-btn { font-size: 13px; }
+
+.near-muted { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
+
+.near-alert {
+  margin-top: 16px;
+  display: flex; gap: 10px; align-items: center;
+  padding: 14px 16px; border-radius: 16px;
+  background: var(--tile-bg); border: 1px solid var(--tile-border);
+  font-size: 14px;
+}
+
+.near-grid {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 18px;
+  align-items: start;
+}
+.near-col { display: grid; gap: 16px; min-width: 0; }
+.near-map-col { position: sticky; top: 84px; }
+.near-map-wrap {
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--tile-border);
+  box-shadow: var(--shadow-lg);
+}
+.near-map { height: min(64vh, 560px); min-height: 320px; background: var(--card); }
+
+/* Stanje na mojoj lokaciji */
+.near-status { border-radius: var(--radius); padding: 18px; }
+.near-status.ok { background: var(--green-bg); color: var(--green-text); }
+.near-status.bad { background: var(--live-bg); color: var(--live-text); border: 1px solid var(--danger-border); }
+.near-status-head { display: flex; gap: 12px; align-items: flex-start; }
+.near-status-head strong { display: block; font-size: 19px; letter-spacing: -.02em; color: var(--text); }
+.near-status-head span { font-size: 14px; }
+.near-status .near-rows { margin-top: 14px; }
+
+.near-block { padding: 18px; }
+.near-block-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.near-block-head h2 { font-size: 18px; }
+
+.near-rows { display: grid; gap: 8px; }
+.near-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  transition: border-color .2s, transform .2s var(--ease);
+}
+.near-row:hover { border-color: var(--type-color); transform: translateX(2px); }
+.near-row-icon {
+  width: 36px; height: 36px; flex: none;
+  display: grid; place-items: center;
+  border-radius: 11px;
+  background: var(--type-bg); color: var(--type-color);
+}
+.near-row-body { flex: 1; min-width: 0; display: grid; }
+.near-row-title { font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.near-row-sub { font-size: 13px; color: var(--text-sec); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.near-row-dist { font-size: 13px; font-weight: 700; color: var(--text-sec); }
+
+.near-tag {
+  display: inline-flex; align-items: center;
+  font-size: 11px; font-weight: 700;
+  padding: 2px 7px; border-radius: 999px;
+}
+.near-tag.gold { background: var(--gold-bg); color: var(--gold-text); }
+.near-tag.green { background: var(--green-bg); color: var(--green-text); }
+
+/* Kategorije i objekti */
+.cat-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 12px; scrollbar-width: none; }
+.cat-tabs::-webkit-scrollbar { display: none; }
+.cat-tabs button {
+  flex: none;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  font-size: 14px; font-weight: 600;
+  transition: background .2s, border-color .2s, color .2s;
+}
+.cat-tabs button.on { background: var(--pc); border-color: var(--pc); color: #fff; }
+
+.place-list { display: grid; gap: 8px; }
+.place-row {
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  overflow: hidden;
+  transition: border-color .2s;
+}
+.place-row.on { border-color: var(--pc); box-shadow: 0 0 0 3px color-mix(in srgb, var(--pc) 18%, transparent); }
+.place-main { width: 100%; display: flex; align-items: center; gap: 12px; padding: 11px 12px; text-align: left; }
+.place-emoji {
+  width: 36px; height: 36px; flex: none;
+  display: grid; place-items: center;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--pc) 14%, transparent);
+  font-size: 18px;
+}
+.place-body { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.place-name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.place-sub { font-size: 13px; color: var(--text-sec); display: flex; gap: 8px; align-items: center; }
+.place-warn { font-size: 12px; color: var(--live-text); display: inline-flex; gap: 5px; align-items: center; margin-top: 2px; }
+.place-dist { font-weight: 800; font-size: 14px; }
+.place-actions { display: none; gap: 8px; padding: 0 12px 12px 60px; flex-wrap: wrap; }
+.place-row.on .place-actions { display: flex; }
+
+/* Pinovi na mapi */
+.place-pin {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: #fff;
+  border: 2.5px solid var(--pc);
+  font-size: 15px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .25);
+  transition: transform .2s var(--spring);
+}
+.place-pin.on { transform: scale(1.3); z-index: 10; }
+.place-pin.warn { border-color: #F2401E; border-style: dashed; }
+.me-dot {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: #4F6BFF;
+  border: 4px solid #fff;
+  box-shadow: 0 0 0 6px rgba(79, 107, 255, .25), 0 3px 10px rgba(0, 0, 0, .3);
+}
+
+.near-city { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; margin-top: 16px; }
+.near-city strong { display: block; font-size: 17px; margin-top: 2px; }
+
+/* Ruta */
+.route-panel { margin-top: 16px; padding: 18px; }
+.route-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.route-target { font-size: 18px; font-weight: 700; margin-top: 2px; }
+.rot45 { transform: rotate(45deg); }
+.route-modes { display: inline-flex; gap: 4px; padding: 4px; margin: 12px 0; border-radius: 12px; background: var(--card); border: 1px solid var(--border); }
+.route-modes button { padding: 7px 12px; border-radius: 9px; font-size: 14px; font-weight: 600; color: var(--text-sec); }
+.route-modes button.on { background: var(--ink); color: var(--ink-contrast); }
+.route-list { display: grid; gap: 8px; }
+.route-opt {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+.route-opt.best { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-bg); }
+.route-time { grid-row: span 2; font-size: 22px; font-weight: 800; align-self: center; letter-spacing: -.03em; }
+.route-meta { display: flex; gap: 8px; align-items: center; font-size: 14px; color: var(--text-sec); }
+.route-works { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--green-text); }
+.route-opt.works .route-works { color: var(--live-text); }
+
+.near-results { margin-top: 16px; padding: 18px; }
+.addr-results { display: grid; gap: 8px; margin-top: 10px; }
+.addr-results li { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.addr-actions { display: flex; gap: 6px; }
+
+.near-skel {
+  border-radius: var(--radius);
+  background: linear-gradient(90deg, var(--tile-border) 0%, var(--divider) 50%, var(--tile-border) 100%);
+  background-size: 200% 100%;
+  animation: near-shimmer 1.4s infinite linear;
+  opacity: .6;
+}
+@keyframes near-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+@media (max-width: 900px) {
+  .near-grid { grid-template-columns: 1fr; }
+  /* Na mobitelu mapa ide iznad liste */
+  .near-map-col { position: static; order: -1; }
+  .near-map { height: 44vh; min-height: 260px; }
+}

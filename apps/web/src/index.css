@@ -392,6 +392,7 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -.03em; }
 }
 .inc-card:hover .inc-card-icon { transform: rotate(-8deg) scale(1.06); }
 .inc-card-title { font-size: 17px; font-weight: 600; line-height: 1.3; letter-spacing: -.02em; margin-top: 16px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.inc-card-where { margin-top: 4px; font-size: 14px; color: var(--text-sec); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .inc-card-meta { display: flex; gap: 6px; margin-top: 6px; font-size: 13.5px; color: var(--text-sec); min-width: 0; }
 .inc-card-company { font-weight: 600; flex-shrink: 0; }
 .inc-card-company::after { content: '·'; margin-left: 6px; color: var(--text-muted); }
@@ -504,6 +505,12 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -.03em; }
 .chip { display: inline-flex; align-items: center; gap: 6px; background: var(--divider); color: var(--text); font-size: 13.5px; font-weight: 500; border-radius: 999px; padding: 8px 13px; }
 .chip svg { color: var(--type-color, var(--text-sec)); }
 .detail-description { font-size: 15.5px; line-height: 1.7; color: var(--text-sec); }
+.detail-description + .detail-description { margin-top: 10px; }
+.detail-source summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0; }
+.detail-source summary::-webkit-details-marker { display: none; }
+.detail-source summary::after { content: '+'; font-size: 20px; color: var(--text-muted); }
+.detail-source[open] summary { margin-bottom: 12px; }
+.detail-source[open] summary::after { content: '−'; }
 
 /* ── Mapa ── */
 .filter-bar { display: flex; gap: 8px; overflow-x: auto; padding: 16px 0; scrollbar-width: none; }
@@ -575,6 +582,13 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -.03em; }
 
 /* ── Profil / postavke ── */
 .profile-card { display: flex; align-items: center; gap: 18px; overflow: hidden; }
+.avatar {
+  width: 56px; height: 56px; flex: none;
+  display: grid; place-items: center;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #FF4D2E, #FFB020 55%, #5B7CFF);
+  color: #fff; font-size: 24px; font-weight: 800;
+}
 .profile-card::after {
   content: ''; position: absolute; right: -80px; top: -80px; width: 240px; height: 240px; border-radius: 50%;
   background: radial-gradient(circle, var(--glow-2), transparent 70%); pointer-events: none;
