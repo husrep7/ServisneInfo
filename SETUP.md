@@ -111,19 +111,31 @@ Kontejner pri startu prvo pokrene migracije (`node dist/db/migrate.js`), pa serv
 | GET / DELETE | /admin/blocked, /admin/blocked/:key | Blokirani prijavioci i deblokada (admin) |
 | POST | /admin/incidents/:id/close | Ručno zatvaranje korisničkog prekida (admin) |
 | POST | /scrape-now | Ručno pokretanje scrapera (admin) |
+| POST | /auth/register, /auth/login, /auth/google | Registracija, prijava emailom ili Google ID tokenom → `{ token, user }` |
+| GET / POST | /auth/me, /auth/logout | Trenutni korisnik i odjava (`Authorization: Bearer <token sesije>`) |
+| POST | /auth/password/forgot, /auth/password/reset | Link za novu lozinku na email (uvijek 204) i postavljanje nove lozinke |
+| GET | /auth/config | Da li je Google prijava uključena (Client ID za web) |
+| GET | /nearby?lat=&lng= | Moja adresa i prekidi oko mene (`inside` = tačka je u zoni) |
+| GET | /places/nearby?lat=&lng=&category= | Najbliži bankomat, pumpa, pošta, apoteka, banka (`atm`, `fuel`, `post`, `pharmacy`, `bank`) |
+| GET | /search?q=&lat=&lng= | Pametna pretraga: "pošta kod Ferhadije", "najbliža pumpa" ili adresa |
+| GET | /route?from=lat,lng&to=lat,lng&mode=car\|foot | Do tri rute i radovi na svakoj; `recommended` zaobilazi najviše zona |
+| GET | /feeds/prekidi.rss, .json, .ics | RSS, JSON Feed i kalendar prekida; filteri `?type=` i `?lat=&lng=&radius=` |
 
 ## Arhitektura
 
 ```
-Scrapers (KJKP Vodovod, Elektrodistribucija)
-    ↓ svakih 15 min
+RSS/Atom feedovi izvora (Sarajevogas) ─┐
+HTML scraperi (ViK, EPBiH, Toplane…)  ─┤ svakih 15 min
+                                       ↓
 Claude API (parsiranje adresa iz slobodnog teksta)
     ↓
-Nominatim (geocoding adresa → koordinate)
+Lokalni registar ulica (OSM, dnevni uvoz) → Nominatim samo za ono što nije u registru
     ↓
-PostGIS (polygon = convex hull + 150m buffer)
+PostGIS (zona = unija krugova od 150 m oko svake ulice)
     ↓
-Geofencing (ST_Within query za sve device tokene)
+Geofencing (adrese i lokacija uređaja) → Expo push
     ↓
-Expo Push Notifications → korisnikov telefon
+API + feedovi (RSS, JSON Feed, iCal) → web, mobilna, kalendari, drugi servisi
 ```
+
+Odluke i razlozi za njih su zapisani kao ADR-ovi u [`docs/adr`](docs/adr/README.md).

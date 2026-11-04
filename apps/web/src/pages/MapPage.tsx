@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { fetchIncidents, fetchPublicReports } from '../api';
 import type { PublicReport } from '../api';
 import type { Incident, IncidentType } from '../types';
-import { TYPE_COLOR, TYPE_LABEL, TYPE_SERVICE, COMPANIES, getCompany, fmtWhen, typeStyle, reportExpiresIn, timeAgo } from '../types';
+import { TYPE_COLOR, TYPE_LABEL, TYPE_SERVICE, COMPANIES, getCompany, fmtWhen, typeStyle, reportExpiresIn, timeAgo, incidentHeadline, incidentWhere } from '../types';
 import { ReportCard } from '../components/ReportCard';
 import { isNearMe, useAddresses } from '../addresses';
 import type { SavedAddress } from '../addresses';
@@ -32,8 +32,9 @@ const OPCINA_COORDS: Record<string, [number, number]> = {
 
 function getCoords(incident: Incident): [number, number] | null {
   if (incident.area_geojson) {
-    // Centroid polygona
-    const coords = incident.area_geojson.coordinates[0];
+    // Središte zone: tačke vanjskih prstena svih dijelova
+    const a = incident.area_geojson;
+    const coords = a.type === 'Polygon' ? a.coordinates[0] : a.coordinates.flatMap(p => p[0]);
     const lat = coords.reduce((s, c) => s + c[1], 0) / coords.length;
     const lng = coords.reduce((s, c) => s + c[0], 0) / coords.length;
     return [lat, lng];
@@ -72,7 +73,7 @@ function esc(s: string): string {
 }
 
 function makePopup(incident: Incident): string {
-  const addrs = esc(incident.affected_addresses?.slice(0, 3).join(', ') ?? '');
+  const addrs = esc(incidentWhere(incident, 3));
   const when  = fmtWhen(incident.starts_at, incident.ends_at);
   const badge = incident.status === 'active'
     ? '<span class="badge live">Aktivno</span>'
@@ -80,7 +81,7 @@ function makePopup(incident: Incident): string {
 
   return `
     <div class="popup-badges">${badge}</div>
-    <div class="popup-title">${esc(incident.title)}</div>
+    <div class="popup-title">${esc(incidentHeadline(incident))}</div>
     ${addrs ? `<div class="popup-line">📍 ${addrs}</div>` : ''}
     ${when ? `<div class="popup-line">🕐 ${esc(when)}</div>` : ''}
     <div class="popup-company">${esc(getCompany(incident.type).shortName)} · ${esc(TYPE_LABEL[incident.type])}</div>

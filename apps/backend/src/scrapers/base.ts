@@ -2,7 +2,7 @@ import { createHash } from 'crypto';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { db } from '../db';
-import { parseAddressesFromText, buildPolygonFromAddresses } from '../services/geocoding';
+import { parseAddressesFromText, buildPolygonFromAddresses, zoneFromPointsSql } from '../services/geocoding';
 import { notifyIncident } from '../services/notifications';
 import { publishIncidentEvent } from '../routes/websocket';
 import type { ScraperResult } from './index';
@@ -122,9 +122,7 @@ export async function saveIncidents(
          (type, title, description, source_url, affected_area, affected_addresses, starts_at, ends_at, status, dedup_key, source)
        VALUES (
          $1, $2, $3, $4,
-         CASE WHEN $5::text IS NOT NULL
-           THEN ST_Buffer(ST_ConvexHull(ST_GeomFromText($5, 4326))::geography, 150)::geometry
-           ELSE NULL END,
+         CASE WHEN $5::text IS NOT NULL THEN ${zoneFromPointsSql('$5')} ELSE NULL END,
          $6, $7, $8,
          -- Inicijalni status na osnovu vremena
          CASE

@@ -209,3 +209,41 @@ export function incidentProgress(i: Incident, now = Date.now()): { pct: number |
   const pct = start && end > start ? Math.min(100, Math.max(0, ((now - start) / (end - start)) * 100)) : null;
   return { pct, label: `Još ${fmtDuration(end - now)}` };
 }
+
+// Kratak sažetak obavijesti umjesto cijelog teksta izvora: "Bez struje" + "Gatačka, Kraljice Jelene i još 4"
+export const TYPE_OUTAGE: Record<IncidentType, string> = {
+  water: 'Bez vode', electricity: 'Bez struje', gas: 'Bez gasa', heating: 'Bez grijanja', internet: 'Bez interneta',
+};
+
+// Ulica iz obavijesti bez kućnih brojeva: "Gatačka 1-4, 6-7" → "Gatačka"
+function streetName(address: string): string {
+  return address.split(',')[0].replace(/^ulica\s+/i, '').replace(/\s+(\d+[A-Za-z]?([-–/]\d+)?|bb|BB)(\s.*)?$/, '').trim();
+}
+
+export function incidentStreets(i: Pick<Incident, 'affected_addresses'>): string[] {
+  // Kad izvlačenje adresa ne uspije, u listi je cijeli tekst obavijesti — to nije ulica
+  const list = (i.affected_addresses ?? []).filter(a => a.length <= 60 && !a.includes(':')).map(streetName).filter(Boolean);
+  return [...new Set(list)];
+}
+
+export function incidentWhere(i: Pick<Incident, 'affected_addresses' | 'title' | 'municipality'>, max = 2): string {
+  const streets = incidentStreets(i);
+  if (streets.length > 0) {
+    const shown = streets.slice(0, max).join(', ');
+    return streets.length > max ? `${shown} i još ${streets.length - max}` : shown;
+  }
+  // "Isključenje struje — Novi Grad, 05.11.2026 13:30-15:00" → "Novi Grad"
+  const m = i.title.match(/—\s*([^,]+)/);
+  if (m) return m[1].trim();
+  return i.municipality && i.municipality !== 'Sarajevo' ? i.municipality : 'Kanton Sarajevo';
+}
+
+export function incidentHeadline(i: Pick<Incident, 'type' | 'status'>): string {
+  return i.status === 'scheduled' ? `Planirano: ${TYPE_OUTAGE[i.type].toLowerCase()}` : TYPE_OUTAGE[i.type];
+}
+
+// "350 m", "1,2 km"
+export function fmtDistance(m: number): string {
+  if (m < 1000) return `${Math.max(10, Math.round(m / 10) * 10)} m`;
+  return `${(m / 1000).toFixed(1).replace('.', ',')} km`;
+}

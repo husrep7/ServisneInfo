@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { COMPANIES } from '../types';
+import { useAddresses } from '../addresses';
+import { firstName, setGuest, useSession } from '../session';
 import { useTheme } from '../context/ThemeContext';
-import { fetchScraperStatus } from '../api';
+import { FEEDS_URL, fetchScraperStatus, logout } from '../api';
 import type { ScraperStatus } from '../api';
 import { PageHeader } from '../components/PageHeader';
 import { BrandMark, Icon } from '../components/Icon';
@@ -44,8 +46,49 @@ function Row({ icon, label, sub, value, to, href, external }: {
   return <div className="row">{body}</div>;
 }
 
+// Pretplata na feed (ADR-0002): kalendar preko webcal:// otvara aplikaciju kalendara direktno
+function feedUrl(ext: 'rss' | 'json' | 'ics', near?: { lat: number; lng: number }): string {
+  const q = near ? `?lat=${near.lat.toFixed(5)}&lng=${near.lng.toFixed(5)}&radius=1000` : '';
+  return `${FEEDS_URL}/prekidi.${ext}${q}`;
+}
+
+function AccountCard() {
+  const session = useSession();
+  const navigate = useNavigate();
+  if (!session) {
+    return (
+      <div className="card profile-card">
+        <BrandMark size={56} />
+        <div style={{ flex: 1 }}>
+          <div className="profile-name">Niste prijavljeni</div>
+          <div className="profile-sub">Prijavite se da sačuvate adrese i dobijate obavijesti na svim uređajima.</div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+            <Link to="/prijava" className="btn primary sm" onClick={() => setGuest(false)}>Prijava</Link>
+            <Link to="/registracija" className="btn secondary sm" onClick={() => setGuest(false)}>Registracija</Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  const { user } = session;
+  return (
+    <div className="card profile-card">
+      <span className="avatar" aria-hidden="true">{firstName(user).slice(0, 1)}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="profile-name">{user.name ?? firstName(user)}</div>
+        <div className="profile-sub">{user.email}{user.hasGoogle ? ' · Google račun' : ''}</div>
+      </div>
+      <button className="btn secondary sm" onClick={async () => { await logout(); navigate('/prijava'); }}>
+        <Icon name="logout" size={15} /> Odjava
+      </button>
+    </div>
+  );
+}
+
 export default function Settings() {
   const { theme, toggle } = useTheme();
+  const addresses = useAddresses();
+  const home = addresses[0];
   const [scraperStatus, setScraperStatus] = useState<ScraperStatus[]>([]);
 
   useEffect(() => {
@@ -59,13 +102,7 @@ export default function Settings() {
       <PageHeader eyebrow="ServisneInfo" title="Profil" narrow />
 
       <div className="container narrow stack" style={{ marginTop: 20 }}>
-        <div className="card profile-card">
-          <BrandMark size={56} />
-          <div>
-            <div className="profile-name">ServisneInfo</div>
-            <div className="profile-sub">Obavijesti o prekidima komunalnih usluga u Kantonu Sarajevo</div>
-          </div>
-        </div>
+        <AccountCard />
 
         <div className="card setting-row">
           <span className="setting-icon"><Icon name={theme === 'dark' ? 'moon' : 'sun'} /></span>
@@ -81,6 +118,19 @@ export default function Settings() {
         </div>
 
         <MyAddresses />
+
+        <div className="group-title">Pretplate</div>
+        <div className="list-card">
+          {home && (
+            <Row icon="clock" label={`Kalendar prekida: ${home.label}`} sub="Planirani prekidi u krugu od 1 km kao događaji u vašem kalendaru"
+              href={feedUrl('ics', home).replace(/^https?:/, 'webcal:')} external />
+          )}
+          <Row icon="clock" label="Kalendar svih prekida" sub="Google, Apple ili Outlook kalendar se sam osvježava"
+            href={feedUrl('ics').replace(/^https?:/, 'webcal:')} external />
+          <Row icon="send" label="RSS feed" sub={home ? `Za čitače vijesti · samo oko adrese ${home.label}` : 'Za čitače vijesti, portale i automatizacije'}
+            href={feedUrl('rss', home)} external />
+          <Row icon="file" label="JSON feed" sub="Za programere i widgete" href={feedUrl('json', home)} external />
+        </div>
 
         <div className="group-title">Podrška</div>
         <div className="list-card">

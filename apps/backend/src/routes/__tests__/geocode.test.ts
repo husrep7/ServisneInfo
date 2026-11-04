@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import Fastify, { FastifyInstance } from 'fastify';
 import { errorHandler } from '../../errors';
 import { geocodeRoutes, geocodeRateLimit, resetGeocodeRateLimit } from '../geocode';
-import { buildPolygonFromAddresses, geocodeLimits, nominatim } from '../../services/geocoding';
+import { buildPolygonFromAddresses, geocodeLimits, nominatim, resetGeocodeCache } from '../../services/geocoding';
 
 // Ne treba baza: Nominatim je zamijenjen, a limit po IP hashu je u memoriji
 describe('GET /geocode', () => {
@@ -21,6 +21,7 @@ describe('GET /geocode', () => {
   beforeEach(() => {
     calls = [];
     resetGeocodeRateLimit();
+    resetGeocodeCache();
     nominatim.search = async (params) => {
       calls.push(String(params.q));
       return [{ display_name: 'Ferhadija, Stari Grad, Sarajevo, Kanton Sarajevo', lat: '43.859', lon: '18.428' }];

@@ -10,10 +10,15 @@ import { healthRoutes } from "./routes/health";
 import { reportsRoutes } from "./routes/reports";
 import { adminRoutes } from "./routes/admin";
 import { geocodeRoutes } from "./routes/geocode";
+import { authRoutes } from "./routes/auth";
+import { locationRoutes } from "./routes/location";
+import { feedsRoutes } from "./routes/feeds";
 import { startScraperJobs, runAllScrapers, stopScrapers } from "./jobs/scraper.job";
 import { startStatusJob } from "./jobs/status.job";
 import { startReminderJob } from "./jobs/reminder.job";
 import { startRetentionJob } from "./jobs/retention.job";
+import { startBackfillJob } from "./jobs/backfill.job";
+import { startPlacesJob } from "./jobs/places.job";
 import { computeHealth } from "./services/scraperHealth";
 import { config, checkConfig, corsOriginAllowed, trustProxyHops } from "./config";
 import { errorHandler } from "./errors";
@@ -48,6 +53,9 @@ async function main() {
   await app.register(reportsRoutes);
   await app.register(adminRoutes);
   await app.register(geocodeRoutes);
+  await app.register(authRoutes);
+  await app.register(locationRoutes);
+  await app.register(feedsRoutes);
 
   await app.register(healthRoutes);
 
@@ -72,7 +80,9 @@ async function main() {
     );
   });
 
-  const tasks = [...startScraperJobs(), startStatusJob(), startReminderJob(), startRetentionJob()];
+  const tasks = [
+    ...startScraperJobs(), startStatusJob(), startReminderJob(), startRetentionJob(), startBackfillJob(), startPlacesJob(),
+  ];
   handleShutdown(tasks);
 
   await app.listen({ port: config.port, host: "0.0.0.0" });

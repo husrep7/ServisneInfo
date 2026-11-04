@@ -18,6 +18,16 @@ export const config = {
   alertWebhookUrl: process.env.ALERT_WEBHOOK_URL || "",
   // Dozvoljeni web origini (#14), zarezom odvojeni; "*" u domenu je wildcard (npr. https://*.vercel.app)
   corsOrigins: parseList(process.env.CORS_ORIGINS),
+  // Adresa weba za linkove u emailu (reset lozinke) i u feedovima (ADR-0002)
+  webUrl: (process.env.WEB_URL || "http://localhost:5173").replace(/\/$/, ""),
+  // OAuth Client ID (tip "Web application") iz Google Cloud konzole; bez njega je Google prijava isključena
+  googleClientId: process.env.GOOGLE_CLIENT_ID || "",
+  // Resend API ključ za slanje emaila; bez njega se email ispisuje u log (lokalni razvoj)
+  resendApiKey: process.env.RESEND_API_KEY || "",
+  mailFrom: process.env.MAIL_FROM || "ServisneInfo <noreply@servisne.info>",
+  // Overpass (OpenStreetMap, lista zarezom) za objekte u blizini i OSRM za rute (ADR-0004, ADR-0005)
+  overpassUrl: process.env.OVERPASS_URL || "https://overpass-api.de/api/interpreter,https://overpass.kumi.systems/api/interpreter",
+  osrmUrl: (process.env.OSRM_URL || "https://routing.openstreetmap.de").replace(/\/$/, ""),
   production: process.env.NODE_ENV === "production",
 };
 
@@ -38,6 +48,8 @@ const OPTIONAL: Record<string, string> = {
   ANTHROPIC_API_KEY: "scraperi neće izvlačiti adrese iz teksta",
   EXPO_ACCESS_TOKEN: "push ide bez Expo access tokena",
   ALERT_WEBHOOK_URL: "alarm za scrapere se samo loguje",
+  GOOGLE_CLIENT_ID: "prijava preko Google računa je isključena",
+  RESEND_API_KEY: "emailovi (reset lozinke) se samo ispisuju u log",
 };
 
 // Provjera env varijabli na startu (#15): u produkciji nedostajuće obavezne varijable

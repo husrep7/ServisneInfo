@@ -21,8 +21,10 @@ const SARAJEVO_REGION = {
   longitudeDelta: 0.08,
 };
 
-function polygonCoords(geojson: GeoJSON.Polygon) {
-  return geojson.coordinates[0].map(([lng, lat]) => ({ latitude: lat, longitude: lng }));
+// Zona službene obavijesti je MultiPolygon (krug oko svake ulice): jedan Polygon po dijelu
+function polygonParts(geojson: GeoJSON.Polygon | GeoJSON.MultiPolygon) {
+  const rings = geojson.type === "Polygon" ? [geojson.coordinates[0]] : geojson.coordinates.map((p) => p[0]);
+  return rings.map((ring) => ring.map(([lng, lat]) => ({ latitude: lat, longitude: lng })));
 }
 
 const LEGEND: { type: Incident["type"]; label: string }[] = [
@@ -77,15 +79,15 @@ export default function MapScreen() {
       >
         {withPolygon.map((incident) => {
           const color = Colors.incident[incident.type];
-          return (
+          return polygonParts(incident.area_geojson!).map((coords, n) => (
             <Polygon
-              key={incident.id}
-              coordinates={polygonCoords(incident.area_geojson!)}
+              key={`${incident.id}:${n}`}
+              coordinates={coords}
               fillColor={`${color}30`}
               strokeColor={color}
               strokeWidth={2}
             />
-          );
+          ));
         })}
       </MapView>
 

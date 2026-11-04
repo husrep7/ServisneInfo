@@ -10,6 +10,14 @@ export interface PolygonGeometry {
   coordinates: number[][][];
 }
 
+// Zona službene obavijesti je unija krugova oko svake ulice (više dijelova)
+export interface MultiPolygonGeometry {
+  type: 'MultiPolygon';
+  coordinates: number[][][][];
+}
+
+export type AreaGeometry = PolygonGeometry | MultiPolygonGeometry;
+
 export interface Incident {
   id: string;
   type: IncidentType;
@@ -22,7 +30,7 @@ export interface Incident {
   ends_at: string | null;
   status: IncidentStatus;
   created_at: string;
-  area_geojson: PolygonGeometry | null;
+  area_geojson: AreaGeometry | null;
   distance_meters: number | null;
   // 'user' = prekid potvrđen iz prijava građana (R17); stariji backend ga ne šalje
   origin?: 'official' | 'user';
