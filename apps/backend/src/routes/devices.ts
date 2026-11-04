@@ -139,6 +139,29 @@ export async function devicesRoutes(app: FastifyInstance) {
     return { ok: true, used };
   });
 
+  // DELETE /devices/me — "Isključi obavijesti i obriši moje podatke" (#26).
+  // Briše uređaj sa push tokenom, postavkama, adresama, lokacijom i evidencijom obavijesti,
+  // a iz njegovih prijava briše ime i kontakt. Same prijave ostaju (moderacija, blokade).
+  app.delete("/devices/me", async (req, reply) => {
+    const id = await requireDevice(req, reply);
+    if (!id) return;
+    const client = await db.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(
+        "UPDATE reports SET reporter_name = NULL, contact = NULL WHERE reporter_key = $1", [id]
+      );
+      await client.query("DELETE FROM device_tokens WHERE id = $1", [id]);
+      await client.query("COMMIT");
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
+    return reply.status(204).send();
+  });
+
   app.get("/devices/me/settings", async (req, reply) => {
     const id = await requireDevice(req, reply);
     if (!id) return;
