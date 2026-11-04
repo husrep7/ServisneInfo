@@ -11,6 +11,7 @@ import { useAddresses } from '../addresses';
 import { firstName, useSession } from '../session';
 import { NearMap } from '../components/NearMap';
 import { PLACE_META, PLACE_ORDER, directionsUrl } from '../components/placeMeta';
+import { bankOf, placeTitle } from '../components/banks';
 import { Icon, TypeIcon } from '../components/Icon';
 import { TYPE_OUTAGE, fmtDistance, fmtDuration, fmtWhen, incidentWhere, plural, typeStyle } from '../types';
 import './near.css';
@@ -44,12 +45,15 @@ function PlaceRow({ p, selected, onSelect, onRoute }: {
   p: Place; selected: boolean; onSelect: () => void; onRoute: () => void;
 }) {
   const meta = PLACE_META[p.category];
+  const bank = bankOf(p);
   return (
     <li className={`place-row${selected ? ' on' : ''}`} style={{ '--pc': meta.color } as CSSProperties}>
       <button className="place-main" onClick={onSelect}>
-        <span className="place-emoji" aria-hidden="true">{meta.emoji}</span>
+        {bank
+          ? <span className="place-emoji place-logo"><img src={bank.logo} alt="" /></span>
+          : <span className="place-emoji" aria-hidden="true">{meta.emoji}</span>}
         <span className="place-body">
-          <span className="place-name">{p.name}</span>
+          <span className="place-name">{placeTitle(p)}</span>
           <span className="place-sub">
             {p.address ?? meta.label}
             {p.opening_hours === '24/7' && <span className="near-tag green">0–24</span>}
@@ -371,7 +375,7 @@ export default function Near() {
                 <ul className="place-list">
                   {shownPlaces.map(p => (
                     <PlaceRow key={p.id} p={p} selected={selected === p.id} onSelect={() => setSelected(p.id)}
-                      onRoute={() => routeTo({ label: p.name, lat: p.lat, lng: p.lng })} />
+                      onRoute={() => routeTo({ label: placeTitle(p), lat: p.lat, lng: p.lng })} />
                   ))}
                 </ul>
               )}

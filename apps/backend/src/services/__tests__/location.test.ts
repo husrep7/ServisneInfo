@@ -39,7 +39,10 @@ test('toImportedPlace: OSM element u objekat, banka sa bankomatom', () => {
   const bank = toImportedPlace({ type: 'node', id: 1, lat: 43.85, lon: 18.41,
     tags: { amenity: 'bank', name: 'Sparkasse', atm: 'yes', 'addr:street': 'Ferhadija', 'addr:housenumber': '2' } });
   assert.deepEqual(bank, { osmId: 'node/1', category: 'bank', name: 'Sparkasse', address: 'Ferhadija 2',
-    openingHours: null, hasAtm: true, lat: 43.85, lng: 18.41 });
+    openingHours: null, brand: null, hasAtm: true, lat: 43.85, lng: 18.41 });
+  // Bankomat bez naziva: banka je u operator oznaci
+  const atm = toImportedPlace({ type: 'node', id: 4, lat: 43.85, lon: 18.41, tags: { amenity: 'atm', operator: 'UniCredit Bank' } });
+  assert.equal(atm?.brand, 'UniCredit Bank');
   const fuel = toImportedPlace({ type: 'way', id: 2, center: { lat: 43.8, lon: 18.3 }, tags: { amenity: 'fuel', brand: 'Petrol' } });
   assert.equal(fuel?.name, 'Petrol');
   assert.equal(fuel?.lat, 43.8);

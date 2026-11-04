@@ -30,4 +30,5 @@ Prva verzija je za svaki zahtjev zvala javne servere (Overpass za objekte, Nomin
 
 - Podaci o objektima su stari najviše dan. Radno vrijeme dolazi iz OSM-a (`opening_hours`) i često ga nema; "dežurnu apoteku" ne možemo pouzdano znati, pa je ne nudimo.
 - Kvalitet zavisi od OSM-a. Nedostajući bankomat se može dodati na openstreetmap.org i pojavi se sljedeći dan.
+- Bankomati i banke imaju logo banke (`apps/web/src/components/banks.ts`, slike u `public/logos/banks`). Banka se prepoznaje po OSM `brand`/`operator` oznaci i nazivu, uz stare nazive (Sberbank i Volksbank → ASA, Hypo Alpe Adria → Addiko). Logotipi su ikone sa sajtova banaka, a za UniCredit, NLB i ProCredit znak iz službenog logotipa sa Wikimedia Commonsa. Oko 80% bankomata i banaka u Kantonu dobije logo; ostali u OSM-u nemaju podatak o banci.
 - OSM licenca (ODbL) traži navođenje izvora: "© OpenStreetMap" je na mapi i na ekranu prijave.

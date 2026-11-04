@@ -142,6 +142,8 @@
   background: color-mix(in srgb, var(--pc) 14%, transparent);
   font-size: 18px;
 }
+.place-logo { background: #fff; border: 1px solid var(--border); padding: 5px; overflow: hidden; }
+.place-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .place-body { flex: 1; min-width: 0; display: grid; gap: 1px; }
 .place-name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .place-sub { font-size: 13px; color: var(--text-sec); display: flex; gap: 8px; align-items: center; }
@@ -160,6 +162,8 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, .25);
   transition: transform .2s var(--spring);
 }
+.place-pin.logo { padding: 4px; overflow: hidden; }
+.place-pin.logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .place-pin.on { transform: scale(1.3); z-index: 10; }
 .place-pin.warn { border-color: #F2401E; border-style: dashed; }
 .me-dot {

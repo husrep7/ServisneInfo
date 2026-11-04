@@ -261,6 +261,7 @@ export interface Place {
   distance_m:    number;
   address:       string | null;
   opening_hours: string | null;
+  brand:         string | null;
   outages:       IncidentType[];
 }
 

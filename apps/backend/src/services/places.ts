@@ -30,6 +30,8 @@ export interface Place {
   distance_m:    number;
   address:       string | null;
   opening_hours: string | null;
+  // Brend ili operator iz OSM-a ("UniCredit Bank"), za logo banke na webu
+  brand:         string | null;
   // Aktivni prekid struje ili interneta čija zona pokriva objekat: možda ne radi
   outages:       string[];
 }
@@ -74,6 +76,7 @@ export interface ImportedPlace {
   name:         string;
   address:      string | null;
   openingHours: string | null;
+  brand:        string | null;
   hasAtm:       boolean;
   lat:          number;
   lng:          number;
@@ -92,6 +95,7 @@ export function toImportedPlace(el: OverpassElement): ImportedPlace | null {
     name: tags.name ?? tags.brand ?? tags.operator ?? CATEGORY_LABEL[category],
     address: street ? (tags["addr:housenumber"] ? `${street} ${tags["addr:housenumber"]}` : street) : null,
     openingHours: tags.opening_hours ?? null,
+    brand: tags.brand ?? tags.operator ?? null,
     hasAtm: category === "bank" && tags.atm === "yes",
     lat,
     lng,
@@ -111,19 +115,19 @@ export async function importPlaces(): Promise<number> {
     await client.query("BEGIN");
     const { rows: [{ started }] } = await client.query<{ started: Date }>("SELECT NOW() AS started");
     await client.query(
-      `INSERT INTO places (osm_id, category, name, address, opening_hours, has_atm, location, updated_at)
-       SELECT t.osm_id, t.category, t.name, t.address, t.opening_hours, t.has_atm,
+      `INSERT INTO places (osm_id, category, name, address, opening_hours, brand, has_atm, location, updated_at)
+       SELECT t.osm_id, t.category, t.name, t.address, t.opening_hours, t.brand, t.has_atm,
               ST_SetSRID(ST_MakePoint(t.lng, t.lat), 4326), NOW()
-         FROM unnest($1::text[], $2::text[], $3::text[], $4::text[], $5::text[], $6::bool[], $7::float8[], $8::float8[])
-           AS t(osm_id, category, name, address, opening_hours, has_atm, lng, lat)
+         FROM unnest($1::text[], $2::text[], $3::text[], $4::text[], $5::text[], $6::bool[], $7::float8[], $8::float8[], $9::text[])
+           AS t(osm_id, category, name, address, opening_hours, has_atm, lng, lat, brand)
        ON CONFLICT (osm_id) DO UPDATE SET
          category = EXCLUDED.category, name = EXCLUDED.name, address = EXCLUDED.address,
-         opening_hours = EXCLUDED.opening_hours, has_atm = EXCLUDED.has_atm,
+         opening_hours = EXCLUDED.opening_hours, brand = EXCLUDED.brand, has_atm = EXCLUDED.has_atm,
          location = EXCLUDED.location, updated_at = NOW()`,
       [
         places.map((p) => p.osmId), places.map((p) => p.category), places.map((p) => p.name),
         places.map((p) => p.address), places.map((p) => p.openingHours), places.map((p) => p.hasAtm),
-        places.map((p) => p.lng), places.map((p) => p.lat),
+        places.map((p) => p.lng), places.map((p) => p.lat), places.map((p) => p.brand),
       ]
     );
     // NOW() je isti tokom cijele transakcije, pa su osvježeni redovi tačno updated_at = started
@@ -140,7 +144,7 @@ export async function importPlaces(): Promise<number> {
 
 export async function nearbyPlaces(category: PlaceCategory, lat: number, lng: number, radius = 2000, limit = 8): Promise<Place[]> {
   const { rows } = await db.query<Omit<Place, "outages"> & { outages: string[] | null }>(
-    `SELECT p.osm_id AS id, p.category, p.name, p.address, p.opening_hours,
+    `SELECT p.osm_id AS id, p.category, p.name, p.address, p.opening_hours, p.brand,
             ST_Y(p.location) AS lat, ST_X(p.location) AS lng,
             ROUND(ST_Distance(p.location::geography, me.pt::geography))::int AS distance_m,
             (SELECT array_agg(DISTINCT i.type::text) FROM incidents i
