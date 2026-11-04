@@ -98,6 +98,7 @@ Kontejner pri startu prvo pokrene migracije (`node dist/db/migrate.js`), pa serv
 | POST | /devices/location | Lokacija uređaja (koristi se samo kad je uključena u postavkama) |
 | GET / PATCH | /devices/me/settings | Postavke uređaja: lokacija, podsjetnik, isključeni tipovi (header `X-Device-Token`) |
 | GET / POST / DELETE | /devices/me/addresses | Adrese uređaja, najviše 5 (header `X-Device-Token`) |
+| DELETE | /devices/me | Brisanje uređaja i njegovih podataka (adrese, lokacija, ime i kontakt iz prijava) |
 | GET | /geocode?q= | Pretraga adrese u Kantonu Sarajevo (limit 10/min po IP-u) |
 | GET | /health, /health/ready | Health check: baza i Redis (503 kad nešto ne radi) |
 | GET | /health/live | Proces je živ |

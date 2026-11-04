@@ -16,6 +16,7 @@ import { feedsRoutes } from "./routes/feeds";
 import { startScraperJobs, runAllScrapers, stopScrapers } from "./jobs/scraper.job";
 import { startStatusJob } from "./jobs/status.job";
 import { startReminderJob } from "./jobs/reminder.job";
+import { startRetentionJob } from "./jobs/retention.job";
 import { startBackfillJob } from "./jobs/backfill.job";
 import { startPlacesJob } from "./jobs/places.job";
 import { computeHealth } from "./services/scraperHealth";
@@ -79,7 +80,9 @@ async function main() {
     );
   });
 
-  const tasks = [...startScraperJobs(), startStatusJob(), startReminderJob(), startBackfillJob(), startPlacesJob()];
+  const tasks = [
+    ...startScraperJobs(), startStatusJob(), startReminderJob(), startRetentionJob(), startBackfillJob(), startPlacesJob(),
+  ];
   handleShutdown(tasks);
 
   await app.listen({ port: config.port, host: "0.0.0.0" });
