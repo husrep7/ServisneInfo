@@ -1,6 +1,6 @@
 import axios from "axios";
 import Constants from "expo-constants";
-import type { Incident } from "@servisneinfo/shared";
+import type { Incident, IncidentType } from "@servisneinfo/shared";
 
 // localhost na telefonu je sam telefon — postaviti EXPO_PUBLIC_API_URL
 // (LAN IP računara u developmentu, npr. http://192.168.1.10:3000, ili produkcijski URL)
@@ -12,6 +12,19 @@ export const BASE_URL: string =
 export const WS_URL = BASE_URL.replace(/^http/, "ws") + "/ws";
 
 export const api = axios.create({ baseURL: BASE_URL, timeout: 10000 });
+
+// tokenId uređaja ide samo u headeru, nikad u URL-u (KTD1). Postavlja ga services/device.ts.
+const DEVICE_HEADER = "x-device-token";
+let deviceToken: string | null = null;
+
+export function setDeviceToken(tokenId: string | null) {
+  deviceToken = tokenId;
+}
+
+api.interceptors.request.use((config) => {
+  if (deviceToken) config.headers.set(DEVICE_HEADER, deviceToken);
+  return config;
+});
 
 export type { Incident } from "@servisneinfo/shared";
 
@@ -39,19 +52,78 @@ export async function fetchIncident(id: string): Promise<Incident | null> {
   }
 }
 
-export async function registerDevice(payload: {
-  expoToken: string;
-  lat?: number;
-  lng?: number;
-}): Promise<{ tokenId: string }> {
+// --- Uređaj (KTD1): registracija radi i bez push tokena ---
+
+export async function registerDevice(payload: { expoToken?: string } = {}): Promise<{ tokenId: string }> {
   const { data } = await api.post<{ tokenId: string }>("/devices/register", payload);
   return data;
 }
 
-export async function reportLocation(payload: {
-  tokenId: string;
+export async function reportLocation(payload: { lat: number; lng: number }): Promise<void> {
+  await api.post("/devices/location", payload);
+}
+
+// null = podsjetnik isključen
+export type ReminderMinutes = 30 | 60 | 180 | 720 | null;
+
+export interface DeviceSettings {
+  locationEnabled: boolean;
+  reminderMinutes: ReminderMinutes;
+  mutedTypes: IncidentType[];
+}
+
+export async function fetchSettings(): Promise<DeviceSettings> {
+  const { data } = await api.get<DeviceSettings>("/devices/me/settings");
+  return data;
+}
+
+export async function updateSettings(patch: Partial<DeviceSettings>): Promise<DeviceSettings> {
+  const { data } = await api.patch<DeviceSettings>("/devices/me/settings", patch);
+  return data;
+}
+
+export interface SavedAddress {
+  id: string;
+  label: string;
+  address: string;
   lat: number;
   lng: number;
-}): Promise<void> {
-  await api.post("/devices/location", payload);
+}
+
+// Backend dozvoljava najviše 5 adresa po uređaju (KTD10)
+export const MAX_ADDRESSES = 5;
+
+export async function fetchAddresses(): Promise<SavedAddress[]> {
+  const { data } = await api.get<SavedAddress[]>("/devices/me/addresses");
+  return data;
+}
+
+export async function addAddress(payload: Omit<SavedAddress, "id">): Promise<SavedAddress> {
+  const { data } = await api.post<SavedAddress>("/devices/me/addresses", payload);
+  return data;
+}
+
+export async function deleteAddress(id: string): Promise<void> {
+  await api.delete(`/devices/me/addresses/${encodeURIComponent(id)}`);
+}
+
+export interface AddressMatch {
+  label: string;
+  lat: number;
+  lng: number;
+}
+
+// Pretraga adrese u Kantonu Sarajevo (KTD12); 429 kad je pretraga zauzeta ili preko limita
+export async function searchAddress(q: string): Promise<AddressMatch[]> {
+  const { data } = await api.get<AddressMatch[]>("/geocode", { params: { q } });
+  return data;
+}
+
+export function isTooManyRequests(err: unknown): boolean {
+  return axios.isAxiosError(err) && err.response?.status === 429;
+}
+
+export function isAddressLimit(err: unknown): boolean {
+  return axios.isAxiosError(err) && err.response?.status === 400
+    && /addresses per device/.test(String(err.response?.data?.error ?? ""));
 }

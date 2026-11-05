@@ -1,9 +1,7 @@
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
-import { registerDevice } from "./api";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -13,12 +11,9 @@ Notifications.setNotificationHandler({
   }),
 });
 
-export async function registerForPushNotifications(): Promise<string | null> {
-  if (!Device.isDevice) {
-    console.warn("Push notifications require a physical device");
-    return null;
-  }
+export type PushStatus = "granted" | "denied" | "undetermined" | "unavailable";
 
+async function ensureAndroidChannel() {
   // Android 13+: dijalog za dozvolu se ne prikazuje dok ne postoji bar jedan kanal
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("servisneinfo", {
@@ -28,19 +23,26 @@ export async function registerForPushNotifications(): Promise<string | null> {
       lightColor: "#1a73e8",
     });
   }
+}
 
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
+export async function getPushStatus(): Promise<PushStatus> {
+  if (!Device.isDevice) return "unavailable";
+  const { status } = await Notifications.getPermissionsAsync();
+  return status as PushStatus;
+}
 
-  if (existingStatus !== "granted") {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
+// Traži dozvolu samo kad je korisnik pita (uvod ili Postavke), nikad pri startu
+export async function requestPushPermission(): Promise<PushStatus> {
+  if (!Device.isDevice) return "unavailable";
+  await ensureAndroidChannel();
+  const { status } = await Notifications.requestPermissionsAsync();
+  return status as PushStatus;
+}
 
-  if (finalStatus !== "granted") {
-    console.warn("Push notification permission denied");
-    return null;
-  }
+// Expo push token kad je dozvola već data; null bez dozvole ili bez EAS projectId-a
+export async function getExpoPushToken(): Promise<string | null> {
+  if ((await getPushStatus()) !== "granted") return null;
+  await ensureAndroidChannel();
 
   // SDK 51 zahtijeva EAS projectId (app.json → extra.eas.projectId, postavlja `eas init`)
   const projectId =
@@ -49,20 +51,5 @@ export async function registerForPushNotifications(): Promise<string | null> {
     console.warn("Missing EAS projectId — push notifications disabled");
     return null;
   }
-
-  const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-
-  // Register token with backend
-  const { tokenId } = await registerDevice({ expoToken: token });
-  await saveTokenId(tokenId);
-
-  return tokenId;
-}
-
-export async function saveTokenId(tokenId: string) {
-  await AsyncStorage.setItem("device_token_id", tokenId);
-}
-
-export async function getTokenId(): Promise<string | null> {
-  return AsyncStorage.getItem("device_token_id");
+  return (await Notifications.getExpoPushTokenAsync({ projectId })).data;
 }
