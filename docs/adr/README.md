@@ -10,6 +10,7 @@ ADR (Architecture Decision Record) je kratak zapis jedne važne odluke: šta smo
 | [0004](0004-lokacija-i-openstreetmap.md) | Lokacija korisnika i objekti iz OpenStreetMapa | Prihvaćeno |
 | [0005](0005-rute-oko-radova.md) | Rute koje zaobilaze radove | Prihvaćeno |
 | [0006](0006-zona-po-ulici.md) | Zona prekida je unija krugova oko svake ulice | Prihvaćeno |
+| [0018](0018-kod-mene-na-serveru.md) | "Kod mene" na mobilnoj uparuje server, prijave uparuje aplikacija | Prihvaćeno |
 
 ## Kako napisati novi ADR
 
