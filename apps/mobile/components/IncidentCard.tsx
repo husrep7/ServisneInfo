@@ -4,26 +4,11 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Linking,
 } from "react-native";
+import { router } from "expo-router";
 import { Incident } from "../services/api";
 import { Colors } from "../constants/colors";
-
-const TYPE_LABEL: Record<Incident["type"], string> = {
-  water:       "VODOVOD",
-  electricity: "ELEKTRO",
-  gas:         "GAS",
-  heating:     "GRIJANJE",
-  internet:    "INTERNET",
-};
-
-const TYPE_ICON: Record<Incident["type"], string> = {
-  water:       "💧",
-  electricity: "⚡",
-  gas:         "🔥",
-  heating:     "🏠",
-  internet:    "🌐",
-};
+import { incidentPath, TYPE_ICON, TYPE_LABEL } from "../constants/incident";
 
 function formatDistance(m: number | null): string {
   if (m === null) return "";
@@ -51,7 +36,13 @@ export function IncidentCard({ incident }: Props) {
   const isScheduled  = incident.status === "scheduled";
 
   return (
-    <View style={styles.card}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => router.push(incidentPath(incident.id))}
+      activeOpacity={0.75}
+      accessibilityRole="button"
+      accessibilityLabel={`${TYPE_LABEL[incident.type]}: ${incident.title}. Otvori detalje`}
+    >
       {/* Left accent bar */}
       <View style={[styles.accentBar, { backgroundColor: accentColor }]} />
 
@@ -113,20 +104,11 @@ export function IncidentCard({ incident }: Props) {
                 {formatDistance(incident.distance_meters)}
               </Text>
             )}
-            {incident.source_url && (
-              <TouchableOpacity
-                onPress={() => Linking.openURL(incident.source_url!)}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                accessibilityRole="link"
-                accessibilityLabel="Otvori izvornu obavijest"
-              >
-                <Text style={styles.sourceLink}>Izvor →</Text>
-              </TouchableOpacity>
-            )}
+            <Text style={styles.sourceLink}>Detalji →</Text>
           </View>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 

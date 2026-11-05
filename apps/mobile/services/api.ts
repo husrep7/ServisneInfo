@@ -28,6 +28,17 @@ export async function fetchIncidents(params?: {
   return [...active.data, ...scheduled.data];
 }
 
+// Jedan prekid za ekran detalja; null kad ne postoji (backend vraća 404 i za neispravan ID)
+export async function fetchIncident(id: string): Promise<Incident | null> {
+  try {
+    const { data } = await api.get<Incident>(`/incidents/${encodeURIComponent(id)}`);
+    return data;
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.status === 404) return null;
+    throw err;
+  }
+}
+
 export async function registerDevice(payload: {
   expoToken: string;
   lat?: number;
