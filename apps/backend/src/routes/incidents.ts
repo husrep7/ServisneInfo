@@ -1,6 +1,17 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../db";
+import { DEVICE_HEADER } from "./devices";
+
+const uuid = z.string().uuid();
+
+// id uređaja iz headera ako postoji u bazi, inače null
+async function deviceFromHeader(raw: string | string[] | undefined): Promise<string | null> {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (!value || !uuid.safeParse(value).success) return null;
+  const { rowCount } = await db.query("SELECT 1 FROM device_tokens WHERE id = $1", [value]);
+  return rowCount ? value : null;
+}
 
 const QuerySchema = z.object({
   lat:    z.coerce.number().optional(),
@@ -11,54 +22,60 @@ const QuerySchema = z.object({
   // Ako je today=true, vraćamo samo incidente čiji starts_at je danas ili u budućnosti
   // z.coerce.boolean() bi i "false" pretvorio u true
   today:  z.enum(["true", "false"]).optional().default("true").transform((v) => v === "true"),
+  // "Kod mene" (R4): samo prekidi čija zona pokriva neku sačuvanu adresu uređaja iz headera (KTD1)
+  mine:   z.enum(["true", "false"]).optional().default("false").transform((v) => v === "true"),
 });
 
 // Incident je "relevantan za danas" ako:
 //   - starts_at je danas ili u budućnosti (planirani radovi)
 //   - starts_at je NULL (vijesti bez datuma — odbacujemo ih u API-ju)
 // Uvijek uključi incidente koji su trenutno aktivni (ends_at > NOW)
-const TODAY_FILTER = `
-  AND (
+const TODAY_FILTER = `(
     -- Aktivan upravo sada (počeo je i još nije završio)
     (starts_at <= NOW() AND (ends_at IS NULL OR ends_at >= NOW()))
     OR
     -- Planirani za danas ili u budućnosti
     (starts_at::date >= CURRENT_DATE)
-  )
-`;
+  )`;
+
+const COLUMNS = `id, type, title, description, source_url,
+  affected_addresses, municipality, starts_at, ends_at, status, origin, created_at,
+  ST_AsGeoJSON(affected_area) AS area_geojson`;
 
 export async function incidentsRoutes(app: FastifyInstance) {
-  app.get("/incidents", async (req) => {
+  app.get("/incidents", async (req, reply) => {
     const query = QuerySchema.parse(req.query);
 
-    const statusFilter = query.status === "all" ? "" : "AND status = $1";
-    const todayFilter  = query.today ? TODAY_FILTER : "";
+    const params: unknown[] = [];
+    const param = (value: unknown) => {
+      params.push(value);
+      return `$${params.length}`;
+    };
 
-    // Build params — status always first if used
-    const buildParams = (...extra: unknown[]) =>
-      query.status === "all"
-        ? [...extra]
-        : [query.status, ...extra];
+    const where: string[] = [];
+    if (query.status !== "all") where.push(`status = ${param(query.status)}`);
+    if (query.today) where.push(TODAY_FILTER);
+    if (query.type) where.push(`type = ${param(query.type)}`);
+    if (query.mine) {
+      const deviceId = await deviceFromHeader(req.headers[DEVICE_HEADER]);
+      if (!deviceId) return reply.status(404).send({ error: "Unknown device" });
+      // Isto uparivanje kao za push (services/notifications.ts)
+      where.push(`affected_area IS NOT NULL AND EXISTS (
+        SELECT 1 FROM device_addresses da
+         WHERE da.device_id = ${param(deviceId)} AND ST_Intersects(da.location, affected_area))`);
+    }
+    const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
     if (query.lat !== undefined && query.lng !== undefined) {
-      const p = buildParams(query.lng, query.lat, query.limit, ...(query.type ? [query.type] : []));
-      const typeIdx  = query.type  ? `AND type = $${p.length}` : "";
-      const limitIdx = p.indexOf(query.limit) + 1;
+      const point = `ST_SetSRID(ST_MakePoint(${param(query.lng)}, ${param(query.lat)}), 4326)::geography`;
+      const distance = `ST_Distance(${point}, ST_Centroid(affected_area)::geography)`;
       const sql = `
-        SELECT id, type, title, description, source_url,
-               affected_addresses, municipality, starts_at, ends_at, status, origin, created_at,
-               ST_AsGeoJSON(affected_area) AS area_geojson,
-               ST_Distance(
-                 ST_SetSRID(ST_MakePoint($${buildParams(query.lng).length}, $${buildParams(query.lng, query.lat).length}), 4326)::geography,
-                 ST_Centroid(affected_area)::geography
-               ) AS distance_meters
+        SELECT ${COLUMNS}, ${distance} AS distance_meters
         FROM incidents
-        WHERE 1=1 ${statusFilter} ${todayFilter} ${typeIdx}
-        ORDER BY CASE WHEN affected_area IS NOT NULL
-          THEN ST_Distance(ST_SetSRID(ST_MakePoint($${buildParams(query.lng).length}, $${buildParams(query.lng,query.lat).length}), 4326)::geography, ST_Centroid(affected_area)::geography)
-          ELSE 999999 END ASC
-        LIMIT $${limitIdx}`;
-      const { rows } = await db.query(sql, p);
+        ${whereSql}
+        ORDER BY CASE WHEN affected_area IS NOT NULL THEN ${distance} ELSE 999999 END ASC
+        LIMIT ${param(query.limit)}`;
+      const { rows } = await db.query(sql, params);
       return rows.map(r => ({
         ...r,
         area_geojson:    r.area_geojson    ? JSON.parse(r.area_geojson) : null,
@@ -66,25 +83,13 @@ export async function incidentsRoutes(app: FastifyInstance) {
       }));
     }
 
-    // Simple query without geo
-    const extraParams: unknown[] = [];
-    if (query.type) extraParams.push(query.type);
-    extraParams.push(query.limit);
-
-    const allParams = buildParams(...extraParams);
-    const limitPlaceholder = `$${allParams.length}`;
-    const typePlaceholder  = query.type ? `AND type = $${allParams.indexOf(query.type) + 1}` : "";
-
     const sql = `
-      SELECT id, type, title, description, source_url,
-             affected_addresses, municipality, starts_at, ends_at, status, origin, created_at,
-             ST_AsGeoJSON(affected_area) AS area_geojson
+      SELECT ${COLUMNS}
       FROM incidents
-      WHERE 1=1 ${statusFilter} ${todayFilter} ${typePlaceholder}
+      ${whereSql}
       ORDER BY created_at DESC
-      LIMIT ${limitPlaceholder}`;
-
-    const { rows } = await db.query(sql, allParams);
+      LIMIT ${param(query.limit)}`;
+    const { rows } = await db.query(sql, params);
     return rows.map(r => ({
       ...r,
       area_geojson: r.area_geojson ? JSON.parse(r.area_geojson) : null,

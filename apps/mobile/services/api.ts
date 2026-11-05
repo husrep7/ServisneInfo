@@ -28,10 +28,13 @@ api.interceptors.request.use((config) => {
 
 export type { Incident } from "@servisneinfo/shared";
 
+// mine=true: "Kod mene", samo prekidi čija zona pokriva neku sačuvanu adresu uređaja (R4).
+// Uparivanje radi server, a uređaj se prepoznaje po tokenId-u iz headera (KTD1).
 export async function fetchIncidents(params?: {
   lat?: number;
   lng?: number;
   type?: Incident["type"];
+  mine?: boolean;
 }): Promise<Incident[]> {
   // Backend po defaultu vraća samo aktivne — dohvatamo i planirane (kao web)
   const [active, scheduled] = await Promise.all([
@@ -50,6 +53,27 @@ export async function fetchIncident(id: string): Promise<Incident | null> {
     if (axios.isAxiosError(err) && err.response?.status === 404) return null;
     throw err;
   }
+}
+
+// Nepotvrđene prijave građana (R15): bez imena, kontakta i identifikatora prijavioca
+export interface PublicReport {
+  id: string;
+  type: IncidentType;
+  title: string;
+  description: string | null;
+  address: string;
+  municipality: string;
+  lat: number | null;
+  lng: number | null;
+  created_at: string;
+}
+
+// Nepotvrđena prijava ističe nakon 6 sati (KTD10)
+export const REPORT_PENDING_HOURS = 6;
+
+export async function fetchPublicReports(): Promise<PublicReport[]> {
+  const { data } = await api.get<PublicReport[]>("/reports/public");
+  return data;
 }
 
 // --- Uređaj (KTD1): registracija radi i bez push tokena ---

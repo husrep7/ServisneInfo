@@ -1,7 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { AppState } from "react-native";
-import { fetchIncident, fetchIncidents, Incident, WS_URL } from "../services/api";
+import { fetchIncident, fetchIncidents, fetchPublicReports, Incident, PublicReport, WS_URL } from "../services/api";
+import { useDevice } from "./useDevice";
 
 // Ključ počinje sa "incidents", pa ga WebSocket događaji osvježe kao i listu
 export function useIncident(id: string | undefined) {
@@ -13,11 +14,25 @@ export function useIncident(id: string | undefined) {
   });
 }
 
-export function useIncidents(lat?: number, lng?: number) {
+// mine=true: "Kod mene" (R4); čeka registraciju uređaja jer server traži tokenId
+export function useIncidents(lat?: number, lng?: number, opts: { mine?: boolean } = {}) {
+  const { tokenId } = useDevice();
+  const mine = !!opts.mine;
   return useQuery<Incident[]>({
-    queryKey: ["incidents", lat, lng],
-    queryFn: () => fetchIncidents({ lat, lng }),
+    queryKey: ["incidents", lat, lng, mine ? tokenId : "all"],
+    queryFn: () => fetchIncidents({ lat, lng, mine }),
+    enabled: !mine || !!tokenId,
     refetchInterval: 60_000, // Fallback polling every 60s
+    staleTime: 30_000,
+  });
+}
+
+// Nepotvrđene prijave nemaju WebSocket događaj, pa se osvježavaju svake minute
+export function usePublicReports() {
+  return useQuery<PublicReport[]>({
+    queryKey: ["incidents", "reports"],
+    queryFn: fetchPublicReports,
+    refetchInterval: 60_000,
     staleTime: 30_000,
   });
 }

@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
   FlatList,
+  ScrollView,
   StyleSheet,
   RefreshControl,
   TouchableOpacity,
@@ -10,11 +11,15 @@ import {
   StatusBar,
   Platform,
 } from "react-native";
+import { router } from "expo-router";
 import { useLocation } from "../../hooks/useLocation";
-import { useIncidents } from "../../hooks/useIncidents";
+import { useIncidents, usePublicReports } from "../../hooks/useIncidents";
+import { useAddresses } from "../../hooks/useDevice";
 import { IncidentCard } from "../../components/IncidentCard";
-import { Incident } from "../../services/api";
+import { ReportCard, ReportSheet } from "../../components/ReportCard";
+import { Incident, PublicReport } from "../../services/api";
 import { Colors } from "../../constants/colors";
+import { distanceMeters, REPORT_NEAR_METERS } from "../../constants/incident";
 
 type Filter = Incident["type"] | "all";
 
@@ -27,21 +32,53 @@ const FILTERS: { label: string; value: Filter; icon: string }[] = [
   { label: "Internet", value: "internet",    icon: "🌐" },
 ];
 
+type Row =
+  | { kind: "incident"; key: string; incident: Incident }
+  | { kind: "report"; key: string; report: PublicReport };
+
 export default function HomeScreen() {
   const { location, error: locationError } = useLocation();
   const [activeFilter, setActiveFilter] = useState<Filter>("all");
+  const [nearMe, setNearMe] = useState(false);
+  const [openReport, setOpenReport] = useState<PublicReport | null>(null);
 
+  const { data: addresses = [] } = useAddresses();
   const { data: incidents = [], isLoading, isFetching, refetch } = useIncidents(
     location?.lat,
-    location?.lng
+    location?.lng,
+    { mine: nearMe }
+  );
+  const { data: allReports = [], refetch: refetchReports } = usePublicReports();
+
+  // "Kod mene" za prijave: u krugu od 500 m oko neke sačuvane adrese
+  const reports = useMemo(
+    () =>
+      nearMe
+        ? allReports.filter((r) =>
+            r.lat !== null && r.lng !== null &&
+            addresses.some((a) => distanceMeters(a, { lat: r.lat!, lng: r.lng! }) <= REPORT_NEAR_METERS))
+        : allReports,
+    [nearMe, allReports, addresses]
   );
 
   const activeCount = incidents.filter((i) => i.status === "active").length;
+  const matchesType = (type: Incident["type"]) => activeFilter === "all" || type === activeFilter;
 
-  const filtered =
-    activeFilter === "all"
-      ? incidents
-      : incidents.filter((i) => i.type === activeFilter);
+  // Filter po tipu važi i za prijave (R3); prijave idu iza prekida
+  const rows: Row[] = [
+    ...incidents.filter((i) => matchesType(i.type)).map((i) => ({ kind: "incident" as const, key: i.id, incident: i })),
+    ...reports.filter((r) => matchesType(r.type)).map((r) => ({ kind: "report" as const, key: `r:${r.id}`, report: r })),
+  ];
+
+  const refresh = () => {
+    refetch();
+    refetchReports();
+  };
+
+  const sectionTitle = [
+    nearMe ? "Kod mene" : null,
+    activeFilter === "all" ? (nearMe ? null : "Svi incidenti") : FILTERS.find((f) => f.value === activeFilter)?.label,
+  ].filter(Boolean).join(" · ");
 
   return (
     <View style={styles.container}>
@@ -75,7 +112,22 @@ export default function HomeScreen() {
       )}
 
       {/* Filter chips — Signal pill style */}
-      <View style={styles.filterRow}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterBar}
+        contentContainerStyle={styles.filterRow}
+      >
+        <TouchableOpacity
+          style={[styles.chip, nearMe && styles.chipNear]}
+          onPress={() => setNearMe((v) => !v)}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityState={{ selected: nearMe }}
+          accessibilityLabel="Kod mene: samo prekidi na mojim adresama"
+        >
+          <Text style={[styles.chipText, nearMe && styles.chipTextActive]}>📍 Kod mene</Text>
+        </TouchableOpacity>
         {FILTERS.map((f) => {
           const isActive = activeFilter === f.value;
           const count =
@@ -99,13 +151,11 @@ export default function HomeScreen() {
             </TouchableOpacity>
           );
         })}
-      </View>
+      </ScrollView>
 
       {/* Section heading */}
       <View style={styles.sectionRow}>
-        <Text style={styles.sectionTitle}>
-          {activeFilter === "all" ? "Svi incidenti" : FILTERS.find((f) => f.value === activeFilter)?.label}
-        </Text>
+        <Text style={styles.sectionTitle}>{sectionTitle}</Text>
         {isFetching && !isLoading && (
           <ActivityIndicator size="small" color={Colors.primary} />
         )}
@@ -119,25 +169,55 @@ export default function HomeScreen() {
         </View>
       ) : (
         <FlatList
-          data={filtered}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <IncidentCard incident={item} />}
+          data={rows}
+          keyExtractor={(row) => row.key}
+          renderItem={({ item }) =>
+            item.kind === "incident"
+              ? <IncidentCard incident={item.incident} />
+              : <ReportCard report={item.report} onPress={() => setOpenReport(item.report)} />
+          }
           refreshControl={
             <RefreshControl
               refreshing={isFetching}
-              onRefresh={refetch}
+              onRefresh={refresh}
               tintColor={Colors.primary}
               colors={[Colors.primary]}
             />
           }
           ItemSeparatorComponent={() => <View style={{ height: 2 }} />}
-          ListEmptyComponent={<EmptyState hasLocation={!!location} />}
+          ListEmptyComponent={
+            nearMe
+              ? <NearMeEmpty hasAddresses={addresses.length > 0} />
+              : <EmptyState hasLocation={!!location} />
+          }
           contentContainerStyle={
-            filtered.length === 0 ? styles.emptyContainer : { paddingBottom: 24 }
+            rows.length === 0 ? styles.emptyContainer : { paddingBottom: 24 }
           }
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      <ReportSheet report={openReport} onClose={() => setOpenReport(null)} />
+    </View>
+  );
+}
+
+function NearMeEmpty({ hasAddresses }: { hasAddresses: boolean }) {
+  if (!hasAddresses) {
+    return (
+      <View style={styles.empty}>
+        <Text style={styles.emptyEmoji}>📍</Text>
+        <Text style={styles.emptyTitle}>Dodajte adresu da vidite prekide kod sebe</Text>
+        <TouchableOpacity style={styles.emptyButton} onPress={() => router.push("/settings")} accessibilityRole="button">
+          <Text style={styles.emptyButtonText}>Otvori Postavke</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+  return (
+    <View style={styles.empty}>
+      <Text style={styles.emptyEmoji}>✅</Text>
+      <Text style={styles.emptyTitle}>Trenutno nema prekida na vašim adresama</Text>
     </View>
   );
 }
@@ -150,7 +230,7 @@ function EmptyState({ hasLocation }: { hasLocation: boolean }) {
       <Text style={styles.emptySubtitle}>
         {hasLocation
           ? "Nema aktivnih komunalnih poremećaja u ovom trenutku."
-          : "Omogućite lokaciju za personalizirane obavijesti."}
+          : "Nema aktivnih komunalnih poremećaja. Uključite lokaciju u Postavkama za udaljenost do prekida."}
       </Text>
     </View>
   );
@@ -226,15 +306,21 @@ const styles = StyleSheet.create({
   warningText: { color: "#E65100", fontSize: 12 },
 
   // Filters
+  filterBar: {
+    flexGrow: 0,
+    backgroundColor: Colors.card,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
   filterRow: {
     flexDirection: "row",
     paddingHorizontal: 14,
     paddingVertical: 12,
     gap: 8,
-    backgroundColor: Colors.card,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    flexWrap: "nowrap",
+  },
+  chipNear: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
   chip: {
     paddingHorizontal: 12,
@@ -295,7 +381,16 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: Colors.text,
     marginBottom: 8,
+    textAlign: "center",
   },
+  emptyButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginTop: 12,
+  },
+  emptyButtonText: { color: "#fff", fontSize: 15, fontWeight: "700" },
   emptySubtitle: {
     fontSize: 14,
     color: Colors.textSecondary,
