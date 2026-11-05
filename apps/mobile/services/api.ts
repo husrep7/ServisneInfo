@@ -76,6 +76,33 @@ export async function fetchPublicReports(): Promise<PublicReport[]> {
   return data;
 }
 
+export interface NewReport {
+  type: IncidentType;
+  title: string;
+  description?: string;
+  address: string;
+  lat: number;
+  lng: number;
+  reporterName?: string;
+  contact?: string;
+}
+
+// Prijava sa mobilne: ključ prijavioca je tokenId uređaja (KTD7). Odgovor je uvijek isti,
+// i kad je prijava tiho odbačena (KTD9); 429 samo kod grubog limita po IP-u (#13).
+export async function submitReport(report: NewReport, reporterKey: string): Promise<void> {
+  await api.post("/reports", { ...report, reporterKey, channel: "mobile" });
+}
+
+// Ulica za trenutnu lokaciju (Nominatim preko /nearby); null kad servis ne odgovori
+export async function streetAt(lat: number, lng: number): Promise<string | null> {
+  try {
+    const { data } = await api.get<{ address: { label: string } | null }>("/nearby", { params: { lat, lng } });
+    return data.address?.label ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // --- Uređaj (KTD1): registracija radi i bez push tokena ---
 
 export async function registerDevice(payload: { expoToken?: string } = {}): Promise<{ tokenId: string }> {

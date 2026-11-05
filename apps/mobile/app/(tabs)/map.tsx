@@ -13,6 +13,7 @@ import { useLocation } from "../../hooks/useLocation";
 import { useIncidents, usePublicReports } from "../../hooks/useIncidents";
 import { useAddresses } from "../../hooks/useDevice";
 import { ReportSheet } from "../../components/ReportCard";
+import { ReportButton } from "../../components/ReportButton";
 import { Colors } from "../../constants/colors";
 import { Incident, PublicReport } from "../../services/api";
 import { distanceMeters, incidentPath, polygonParts, REPORT_NEAR_METERS } from "../../constants/incident";
@@ -131,6 +132,8 @@ export default function MapScreen() {
         </View>
       )}
 
+      {/* Lijevo, da ne pokrije dugme za moju lokaciju */}
+      <ReportButton style={{ right: undefined, left: 16 }} />
       <ReportSheet report={openReport} onClose={() => setOpenReport(null)} />
 
       {isLoading && (
@@ -205,7 +208,7 @@ const styles = StyleSheet.create({
   nearChipText: { color: "#fff", fontSize: 12, fontWeight: "600" },
   notice: {
     position: "absolute",
-    bottom: 24,
+    bottom: 80,
     left: 16,
     right: 84,
     backgroundColor: Colors.card,
