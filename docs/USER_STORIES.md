@@ -2,8 +2,8 @@
 
 Ovaj dokument opisuje šta ServisneInfo treba da radi za korisnike i dokle je stiglo.
 
-- **Stanje na dan:** 30. 10. 2026, `main` na commitu `0d84305`.
-- **Izvori:** kod na `main`, otvoreni PR-ovi #53–#60 i v1 plan iz PR-a [#40](https://github.com/husrep7/ServisneInfo/pull/40).
+- **Stanje na dan:** 5. 11. 2026, `main` na commitu `2c33887` (nakon #68 i #69).
+- **Izvori:** kod na `main`, v1 plan iz PR-a [#40](https://github.com/husrep7/ServisneInfo/pull/40) i ADR-ovi u [`adr/`](adr/README.md).
 - **Oznake R1–R23 i KTD:** zahtjevi i tehničke odluke iz v1 plana.
 - **Održavanje:** status se ažurira ručno, pa ga treba promijeniti kad se PR spoji.
 
@@ -31,7 +31,7 @@ Ovaj dokument opisuje šta ServisneInfo treba da radi za korisnike i dokle je st
 
 Kao stanovnik, želim na jednom mjestu vidjeti aktivne i planirane prekide, da ne moram otvarati stranicu svakog preduzeća.
 
-- Web prikazuje brojače Aktivno i Planirano. Po defaultu lista sadrži zadnjih 5 aktivnih prekida.
+- Web stranica Prekidi (`/prekidi`) prikazuje brojače Aktivno i Planirano. Po defaultu lista sadrži zadnjih 5 aktivnih prekida.
 - Klik na brojač prikazuje sve prekide iz te grupe, grupisane po preduzeću.
 - Mobilna lista sadrži aktivne i planirane prekide. Uz dozvolu za lokaciju prikazuje udaljenost do prekida.
 
@@ -55,21 +55,21 @@ Kao stanovnik, želim vidjeti detalje prekida, da znam kada počinje, kada zavr�
 Kao stanovnik, želim filtrirati prikaz po usluzi (voda, struja, gas, grijanje, internet), da vidim samo ono što me zanima.
 
 - ✅ Filter postoji na web mapi i u mobilnoj listi.
-- ⚠️ Nema ga na web početnoj ni na mobilnoj mapi, a tiket za to još ne postoji.
+- ⚠️ Nema ga na web stranici Prekidi ni na mobilnoj mapi, a tiket za to još ne postoji.
 
 **US-05: Automatsko osvježavanje** · 🟡 Djelimično · #11
 
 Kao stanovnik, želim da se lista sama osvježi, da ne gledam zastarjele podatke.
 
-- ✅ Web početna i mobilna aplikacija osvježavaju podatke preko WebSocketa i svakih 60 sekundi.
+- ✅ Web stranica Prekidi i mobilna aplikacija osvježavaju podatke preko WebSocketa i svakih 60 sekundi. Web početna ("U blizini") se osvježava svake 2 minute.
 - ⚠️ Web mapa se učitava samo pri otvaranju stranice.
-- 📋 Backend šalje WebSocket događaj samo za nove prekide. Završeni prekid nestaje tek pri sljedećem osvježavanju (#11).
+- 📋 Backend šalje događaj `resolved` samo kad admin zatvori korisnički prekid. Službeni prekid koji status job zatvori nestaje tek pri sljedećem osvježavanju (#11).
 
-**US-06: Filter "Kod mene"** · 🔄 U PR-u · R4, #59, #47
+**US-06: Filter "Kod mene"** · 🟡 Djelimično · R4, #47
 
 Kao stanovnik, želim suziti prikaz na svoje sačuvane adrese, da vidim samo prekide koji me se tiču.
 
-- 🔄 Web: filter na početnoj i mapi, uz poruke kad nema adresa ili nema prekida (#59).
+- ✅ Web: filter na stranici Prekidi i na mapi, uz poruke kad nema adresa ili nema prekida (#59).
 - 📋 Mobilna: planirano u #47.
 
 **US-07: Preduzeća i stanje izvora** · ✅ Gotovo
@@ -87,30 +87,31 @@ Kao posjetilac weba, želim birati svijetli ili tamni izgled, da mi je ugodnije 
 
 ### Adrese i lokacija
 
-**US-09: Sačuvane adrese bez računa** · 🔄 U PR-u · R5, #60, #59, #46
+**US-09: Sačuvane adrese bez računa** · 🟡 Djelimično · R5, #46
 
 Kao korisnik, želim sačuvati više adresa (kuća, posao, roditelji) bez pravljenja računa, da pratim prekide na svim mjestima koja su mi važna.
 
 - Najviše 5 adresa po uređaju.
-- 🔄 Web čuva adrese samo u browseru (#59).
-- 🔄 Backend čuva adrese mobilnog uređaja (#60).
+- ✅ Web čuva adrese samo u browseru (#59).
+- ✅ Backend čuva adrese mobilnog uređaja (#60).
 - 📋 Mobilni ekran za adrese je u #46.
 
-**US-10: Provjera adrese na mapi** · 🔄 U PR-u · R6, #60, #59, #46
+**US-10: Provjera adrese na mapi** · 🟡 Djelimično · R6, #46
 
 Kao korisnik, želim vidjeti pronađenu adresu na mapi i pomjeriti pin, da budem siguran da obavijesti stižu za pravo mjesto.
 
 - Pretraga je ograničena na Kanton Sarajevo.
 - Ako adresa nije pronađena, korisnik na webu može pin postaviti ručno.
-- 🔄 Web forma je u #59, a backend pretraga u #60. 📋 Mobilni ekran je u #46.
+- ✅ Web forma (#59) i backend pretraga (#60). 📋 Mobilni ekran je u #46.
 
 **US-11: Obavijesti po lokaciji uz pristanak** · 🟡 Djelimično · R7, #60, #46
 
 Kao korisnik, želim sam odlučiti da li aplikacija koristi moju lokaciju, da moja privatnost ostane pod mojom kontrolom.
 
 - Opcija je po defaultu isključena. Pri isključivanju se briše zadnja poznata lokacija.
-- 🔄 Backend je u #60.
-- ⚠️ Mobilna na `main` još traži lokaciju pri pokretanju i šalje je serveru. To se mijenja u #46.
+- ✅ Backend (#60): lokacija se koristi samo uz uključenu opciju.
+- ✅ Web početna traži lokaciju iz browsera tek uz dozvolu korisnika ([ADR 0004](adr/0004-lokacija-i-openstreetmap.md)).
+- ⚠️ Mobilna još traži lokaciju pri pokretanju i šalje je serveru. To se mijenja u #46.
 
 **US-12: Prvo pokretanje aplikacije** · 📋 Planirano · #46
 
@@ -122,49 +123,49 @@ Kao novi korisnik, želim kratak uvod pri prvom otvaranju, da odmah podesim adre
 
 ### Obavijesti (samo mobilna)
 
-**US-13: Push za prekid u mojoj zoni** · 🟡 Djelimično · R8, #43
+**US-13: Push za prekid u mojoj zoni** · 🟡 Djelimično · R8, #46
 
 Kao korisnik, želim dobiti push kad se prekid tiče moje adrese ili lokacije, da saznam za njega bez traženja.
 
 - ✅ Push ide uređajima čija je zadnja GPS lokacija u zoni prekida.
 - ✅ Uređaj koji uđe u zonu aktivnog prekida dobija obavijest kad pošalje novu lokaciju.
-- 📋 Push za sačuvane adrese je u #43.
+- ✅ Backend šalje push i za sačuvane adrese uređaja (#61).
+- 📋 Mobilna još nema ekran za adrese (#46), pa u praksi radi samo push po lokaciji.
 
-**US-14: Najava planiranog prekida** · 🟡 Djelimično · R9, #44
+**US-14: Najava planiranog prekida** · ✅ Gotovo · R9
 
 Kao korisnik, želim najavu čim se planirani prekid objavi, da se stignem pripremiti.
 
-- ✅ Push ide kad scraper prvi put upiše prekid sa zonom.
-- 📋 Poruka još ne razlikuje najavu od početka prekida (#44).
+- Push "najava" ide kad scraper prvi put upiše planiran prekid sa zonom (#63).
+- Tekst poruke razlikuje najavu, podsjetnik i početak.
 
-**US-15: Podsjetnik prije početka** · 📋 Planirano · R10, #44
+**US-15: Podsjetnik prije početka** · 🟡 Djelimično · R10, #46
 
 Kao korisnik, želim podsjetnik prije planiranog prekida, da ne zaboravim natočiti vodu ili završiti posao.
 
 - Default je 1 sat prije početka. Može se promijeniti ili isključiti.
 - Podsjetnik se ne šalje ako je najava stigla unutar tog prozora.
-- 🔄 Čuvanje ove postavke na backendu je u #60.
+- ✅ Backend: postavka po uređaju (#60) i job koji svake minute šalje podsjetnike (#63). Otkazan ili pomjeren prekid ne dobija podsjetnik.
+- 📋 Ekran za promjenu postavke na mobilnoj je u #46; do tada važi default.
 
-**US-16: Obavijest za prekid koji je već počeo** · 🟡 Djelimično · R11, #44
+**US-16: Obavijest za prekid koji je već počeo** · ✅ Gotovo · R11
 
 Kao korisnik, želim jednu obavijest za iznenadan prekid, da znam šta se dešava.
 
-- ✅ Push ide kad se pojavi novi aktivan prekid.
-- 📋 Poseban korak "početak" je u #44.
+- Push "početak" ide kad se pojavi novi aktivan prekid i kad se potvrdi prijava (#61, #63).
 
-**US-17: Bez dupliranih obavijesti** · 🟡 Djelimično · R12, #43
+**US-17: Bez dupliranih obavijesti** · ✅ Gotovo · R12
 
 Kao korisnik, želim dobiti jednu obavijest po koraku, i kad je više mojih adresa u istoj zoni, da mi aplikacija ne smeta.
 
-- ✅ Danas uređaj dobija najviše jedan push po prekidu.
-- 📋 Evidencija po koraku (najava, podsjetnik, početak) je u #43.
+- Evidencija je po koraku (najava, podsjetnik, početak), a korak se zauzme prije slanja, pa ni dva procesa ne šalju isti push dva puta (#61).
 
-**US-18: Isključivanje vrsta usluga** · 📋 Planirano · R13, #60, #46, #43
+**US-18: Isključivanje vrsta usluga** · 🟡 Djelimično · R13, #46
 
 Kao korisnik, želim isključiti obavijesti za usluge koje me ne zanimaju, da dobijam samo korisne obavijesti.
 
 - Prekid isključene usluge i dalje se vidi u listi.
-- 🔄 Postavka na backendu je u #60. 📋 Ekran je u #46, a primjena pri slanju u #43.
+- ✅ Postavka na backendu (#60) i primjena pri slanju (#61). 📋 Ekran je u #46.
 
 **US-19: Tap na obavijest otvara prekid** · 📋 Planirano · R2, #45
 
@@ -174,44 +175,45 @@ Kao korisnik, želim da me tap na obavijest odvede na detalje prekida, da odmah 
 
 ### Prijave korisnika
 
-**US-20: Slanje prijave** · 🟡 Djelimično · R14, #56, #59, #48
+**US-20: Slanje prijave** · 🟡 Djelimično · R14, #48
 
 Kao stanovnik, želim prijaviti kvar koji nije objavljen, da upozorim druge i ubrzam informaciju.
 
 - ✅ Web forma: tip, kratak opis, adresa, a opciono detalji, ime i kontakt.
-- 🔄 Pin na mapi i anonimni ID prijavioca su u #56 i #59.
+- ✅ Pin na mapi i anonimni ID prijavioca (#56, #59).
 - 📋 Prijava sa mobilne je u #48.
 
-**US-21: Nepotvrđene prijave su odmah vidljive** · 🔄 U PR-u · R15, #56, #59, #47
+**US-21: Nepotvrđene prijave su odmah vidljive** · 🟡 Djelimično · R15, #47
 
 Kao stanovnik, želim odmah vidjeti tuđe prijave označene kao nepotvrđene, da saznam za kvar prije službene obavijesti.
 
 - Prijava je jasno označena i ne okida push.
 - Javni prikaz ne sadrži ime, kontakt ni identifikatore prijavioca.
+- ✅ Web: u listi i na mapi (#56, #59).
 - 📋 Prikaz na mobilnoj je u #47.
 
-**US-22: Automatska potvrda** · 🔄 U PR-u · R16, KTD6, #56
+**US-22: Automatska potvrda** · ✅ Gotovo · R16, KTD6
 
 Kao stanovnik, želim da se prijava sama potvrdi kad je više ljudi prijavi, da pravi kvar stigne do drugih i noću.
 
 - Uslov: 3 prijave istog tipa u krugu od 500 m u 2 sata.
 - Prijave moraju doći od 3 različita prijavioca i sa 3 različite IP adrese.
 
-**US-23: Potvrđena prijava postaje prekid** · 🔄 U PR-u · R17, #56, #59
+**US-23: Potvrđena prijava postaje prekid** · ✅ Gotovo · R17
 
 Kao stanovnik, želim potvrđenu prijavu vidjeti kao pravi prekid, uz oznaku da dolazi od korisnika, da znam koliko joj mogu vjerovati.
 
 - Prekid dobija zonu od 150 m i šalje obavijest uređajima u zoni.
 - Sam se zatvara 6 sati nakon zadnje prijave koja ga podržava.
 
-**US-24: Limit prijava** · 🔄 U PR-u · R18, #56
+**US-24: Limit prijava** · ✅ Gotovo · R18
 
 Kao tim projekta, želim ograničiti broj prijava, da jedna osoba ne može zatrpati sistem.
 
 - Najviše 3 prijave na sat po prijaviocu. Web ima i limit od 3 na sat po IP hashu.
 - Prijava preko limita dobija isti odgovor kao uspješna, ali se ne prikazuje javno.
 
-**US-25: Isticanje nepotvrđenih prijava** · 🔄 U PR-u · R19, #56
+**US-25: Isticanje nepotvrđenih prijava** · ✅ Gotovo · R19
 
 Kao stanovnik, želim da stare nepotvrđene prijave nestanu, da prikaz ostane aktuelan.
 
@@ -219,22 +221,21 @@ Kao stanovnik, želim da stare nepotvrđene prijave nestanu, da prikaz ostane ak
 
 ### Administracija
 
-**US-26: Prijava admina** · 🟡 Djelimično · KTD8, #58
+**US-26: Prijava admina** · ✅ Gotovo · KTD8
 
 Kao admin, želim siguran pristup admin dijelu, da prijave i lični podaci ostanu zaštićeni.
 
-- ✅ Na `main` postoje prijava i sidebar, ali lozinka se provjerava samo u browseru, što je privremeno rješenje.
-- 🔄 Prijava sa `ADMIN_TOKEN`-om, provjerena na serveru, je u #58.
+- Prijava sa `ADMIN_TOKEN`-om, provjerena na serveru (#58). Token se čuva samo dok je tab otvoren.
+- Privremena provjera lozinke u browseru je uklonjena.
 
-**US-27: Pregled, potvrda i odbijanje prijava** · 🔄 U PR-u · R20, #57, #58
+**US-27: Pregled, potvrda i odbijanje prijava** · ✅ Gotovo · R20
 
 Kao admin, želim pregledati prijave i svaku potvrditi ili odbiti, da javni prikaz ostane vjerodostojan.
 
 - Potvrđena prijava postaje prekid i šalje obavijest.
 - Odbijena prijava nestaje iz javnog prikaza.
-- Na `main` su admin stranice prazne, a backend ima samo listu prijava.
 
-**US-28: Blokiranje spamera** · 🔄 U PR-u · R21, #57, #58
+**US-28: Blokiranje spamera** · ✅ Gotovo · R21
 
 Kao admin, želim blokirati prijavioca koji spama, da prestanem dobijati lažne prijave.
 
@@ -242,18 +243,19 @@ Kao admin, želim blokirati prijavioca koji spama, da prestanem dobijati lažne 
 - Pošiljalac vidi uobičajenu potvrdu slanja.
 - Blokiranje se može poništiti.
 
-**US-29: Zatvaranje korisničkog prekida** · 🔄 U PR-u · #57, #58
+**US-29: Zatvaranje korisničkog prekida** · ✅ Gotovo
 
 Kao admin, želim ručno zatvoriti prekid nastao iz prijava, da pogrešan prekid odmah nestane.
 
 - Službeni prekidi se ne mogu zatvoriti ovim putem.
 
-**US-30: Admin pregled sistema** · 🔄 U PR-u · #58
+**US-30: Admin pregled sistema** · ✅ Gotovo
 
 Kao admin, želim jedan pregled stanja, da odmah vidim šta traži pažnju.
 
 - Dashboard prikazuje prijave na čekanju, aktivne i korisničke prekide, blokirane prijavioce i ispravne izvore.
 - Izvori prikazuju zadnja pokretanja scrapera.
+- Admin panel je redizajniran u stilu novog weba, sa svijetlom i tamnom temom (#68).
 
 ### Podaci i rad sistema
 
@@ -263,6 +265,7 @@ Kao tim projekta, želim da se obavijesti preduzeća preuzimaju same, da podaci 
 
 - Izvori: KJKP Vodovod, Elektrodistribucija EPBiH, Sarajevogas, Toplane Sarajevo i BH Telecom.
 - Preuzimanje radi svakih 15 minuta, a interval se može promijeniti.
+- Sarajevogas se čita preko RSS feeda, a HTML je rezerva ([ADR 0002](adr/0002-web-syndication.md)).
 - Otvoreno: provjera BH Telecom scrapera na stvarnoj stranici (#20) i ispravan URL za Elektrodistribuciju (#7).
 
 **US-32: Pretvaranje obavijesti u zonu na mapi** · ✅ Gotovo
@@ -270,9 +273,10 @@ Kao tim projekta, želim da se obavijesti preduzeća preuzimaju same, da podaci 
 Kao stanovnik, želim da obavijest postane zona na mapi, da vidim koje je područje pogođeno.
 
 - Claude iz teksta izvlači ulice, a Nominatim ih pretvara u koordinate u Kantonu Sarajevo.
-- Zona je područje oko pronađenih tačaka, proširenje za 150 m.
+- Ulica se prvo traži u vlastitom imeniku ulica iz OpenStreetMapa (`gazetteer`), pa tek onda u Nominatimu ([ADR 0004](adr/0004-lokacija-i-openstreetmap.md)).
+- Zona je unija krugova od 150 m oko svake ulice, a ne jedan omotač oko svih ([ADR 0006](adr/0006-zona-po-ulici.md)).
 - Bez `ANTHROPIC_API_KEY` adrese se ne izvlače iz teksta.
-- Otvoreno: izbacivanje pogrešno geokodiranih tačaka i limit veličine zone (#22).
+- Otvoreno: izbacivanje pogrešno geokodiranih tačaka (#22) i krug oko segmenta duge ulice umjesto oko jedne tačke (ADR 0006).
 
 **US-33: Automatski status prekida** · ✅ Gotovo
 
@@ -281,19 +285,54 @@ Kao stanovnik, želim tačan status prekida, da znam šta važi upravo sada.
 - Status se provjerava svakih 5 minuta.
 - Planirani prekid postaje aktivan kad počne, a aktivan se zatvara kad prođe vrijeme završetka.
 - Prekid bez vremena završetka zatvara se kad ga izvor više ne objavljuje.
+- Planiran prekid koji izvor povuče nakon uspješnog scrapea se zatvara i ne dobija podsjetnik (#63).
 
-**US-34: Upozorenje kad izvor prestane raditi** · 📋 Planirano · #19
+**US-34: Upozorenje kad izvor prestane raditi** · ✅ Gotovo
 
 Kao tim projekta, želim upozorenje kad scraper prestane raditi, da korisnici ne ostanu bez obavijesti a da to niko ne primijeti.
 
-- Danas se greške vide samo u Profilu i logovima.
+- Alarm ide na Slack-kompatibilan webhook (`ALERT_WEBHOOK_URL`) kad izvor 3 puta zaredom padne ili ~1 h tiho vraća 0 obavijesti, i kad se oporavi (#64).
 
-**US-35: Privatnost i brisanje podataka** · 📋 Planirano · #26, #36
+**US-35: Privatnost i brisanje podataka** · 🟡 Djelimično · #36
 
 Kao korisnik, želim znati koje podatke aplikacija čuva i moći ih obrisati, da imam kontrolu nad svojim podacima.
 
-- Politika privatnosti i uslovi korištenja (#36).
-- Brisanje uređaja i rok čuvanja lokacije (#26).
+- ✅ Brisanje uređaja (`DELETE /devices/me`) i rokovi čuvanja: lokacija 90 dana, ime i kontakt iz prijave 7 dana, IP hash 30 dana (#66).
+- ✅ Web: stranica `/privatnost`, uslovi `/uslovi` i brisanje podataka iz browsera (#67).
+- 📋 Mobilna: link na politiku i dugme za brisanje čekaju deploy (#3).
+- 📋 Pravni pregled teksta prije objave u prodavnicama (#36).
+- 📋 Računi nemaju rok čuvanja ni brisanje računa.
+
+### Dodano nakon v1 plana (#69)
+
+**US-36: Korisnički račun** · ✅ Gotovo (samo web) · [ADR 0003](adr/0003-korisnicki-racuni.md)
+
+Kao korisnik, želim se prijaviti emailom ili Google računom, da kasnije imam iste adrese na svim uređajima.
+
+- Registracija, prijava, Google prijava i reset lozinke emailom.
+- "Nastavi bez računa": informacije o prekidima ostaju javne.
+- 📋 Adrese i postavke uz račun i spajanje sa mobilnim uređajem.
+
+**US-37: Šta je u blizini i da li radi** · ✅ Gotovo (samo web) · [ADR 0004](adr/0004-lokacija-i-openstreetmap.md)
+
+Kao stanovnik, želim čim otvorim aplikaciju vidjeti prekide oko sebe i najbliži bankomat, pumpu, poštu, apoteku ili banku, da znam kamo mogu otići.
+
+- Web početna (`/`) koristi GPS, a bez dozvole sačuvanu adresu ili traženu ulicu.
+- Objekti dolaze iz dnevnog uvoza iz OpenStreetMapa, uz upozorenje kad su u zoni prekida struje ili interneta.
+- Pretraga tekstom ("pošta kod Ferhadije"); kad je ključne riječi ne prepoznaju, upit tumači Claude.
+
+**US-38: Ruta koja zaobilazi radove** · ✅ Gotovo (samo web) · [ADR 0005](adr/0005-rute-oko-radova.md)
+
+Kao stanovnik, želim znati da li moj put prolazi kroz zonu radova i postoji li drugi put.
+
+- Do tri alternativne rute (auto ili pješke), a preporučena je ona kroz najmanje zona.
+
+**US-39: Pretplata na prekide (RSS, JSON, kalendar)** · ✅ Gotovo · [ADR 0002](adr/0002-web-syndication.md)
+
+Kao stanovnik ili portal, želim pratiti prekide u čitaču vijesti ili kalendaru, samo za svoju ulicu, bez otvaranja aplikacije.
+
+- `/feeds/prekidi.rss`, `.json` i `.ics`, sa filterom po usluzi i krugu oko tačke.
+- Na webu u Profilu → Pretplate.
 
 ## Funkcije po aplikaciji
 
@@ -301,21 +340,24 @@ Kao korisnik, želim znati koje podatke aplikacija čuva i moći ih obrisati, da
 
 | Funkcija | Status | Veza |
 |---|---|---|
-| Početna s brojačima i listom prekida | ✅ | US-01 |
+| Početna "U blizini": GPS, objekti, pretraga, rute | ✅ #69 | US-37, US-38 |
+| Stranica Prekidi s brojačima i listom | ✅ | US-01 |
 | Grupisanje po preduzeću | ✅ | US-01 |
 | Mapa s markerima i filterom po usluzi | ✅ | US-02, US-04 |
 | Detalji prekida sa zonom na mapi | ✅ | US-03 |
-| Osvježavanje početne uživo | ✅ | US-05 |
+| Osvježavanje stranice Prekidi uživo | ✅ | US-05 |
 | Profil: preduzeća, kontakti, stanje izvora | ✅ | US-07 |
 | Tamni mod | ✅ | US-08 |
 | Forma za prijavu | ✅ | US-20 |
 | Stranica 404 | ✅ | |
-| Admin prijava i sidebar (privremeno) | 🟡 | US-26 |
-| Redizajn i desktop raspored | 🔄 #55 | |
-| Moje adrese i "Kod mene" | 🔄 #59 | US-06, US-09, US-10 |
-| Nepotvrđene prijave u listi i na mapi | 🔄 #59 | US-21 |
-| Pin na mapi u formi za prijavu | 🔄 #59 | US-20 |
-| Admin: Dashboard, Prekidi, Prijave, Blokirani, Izvori, Profil | 🔄 #58 | US-27 do US-30 |
+| Računi: prijava, Google, reset lozinke | ✅ #69 | US-36 |
+| Pretplate (RSS, JSON, kalendar) | ✅ #69 | US-39 |
+| Privatnost, uslovi i brisanje podataka | ✅ #67 | US-35 |
+| Redizajn i desktop raspored | ✅ #55 | |
+| Moje adrese i "Kod mene" | ✅ #59 | US-06, US-09, US-10 |
+| Nepotvrđene prijave u listi i na mapi | ✅ #59 | US-21 |
+| Pin na mapi u formi za prijavu | ✅ #59 | US-20 |
+| Admin: prijava tokenom, Dashboard, Prekidi, Prijave, Blokirani, Izvori, Profil | ✅ #58, #68 | US-26 do US-30 |
 | SEO i PWA osnove | 📋 #34 | |
 | Arhiva prekida | 📋 #35 | |
 
@@ -345,24 +387,27 @@ Kao korisnik, želim znati koje podatke aplikacija čuva i moći ih obrisati, da
 | Izvlačenje adresa i pravljenje zona | ✅ | US-32 |
 | Automatski statusi prekida | ✅ | US-33 |
 | Registracija uređaja i geofencing | ✅ | US-13 |
-| Push preko Expa, po zadnjoj lokaciji | ✅ | US-13, US-17 |
+| Push preko Expa, po lokaciji i sačuvanim adresama | ✅ | US-13, US-17 |
 | Prijem prijava | ✅ | US-20 |
 | Ručno pokretanje scrapera (admin) | ✅ | |
 | Stanje scrapera i health check | ✅ | US-07 |
-| Auto-potvrda, limiti, isticanje, javne prijave | 🔄 #56 | US-21 do US-25 |
-| Admin API za moderaciju | 🔄 #57 | US-27 do US-29 |
-| Postavke i adrese uređaja, pretraga adresa | 🔄 #60 | US-09 do US-11, US-18 |
-| Uparivanje po adresi i evidencija po koraku | 📋 #43 | US-13, US-17, US-18 |
-| Najava, podsjetnik i početak | 📋 #44 | US-14 do US-16 |
-| Rate limiting na javnim endpointima | 📋 #13 | |
-| Upozorenje za pokvaren scraper | 📋 #19 | US-34 |
+| Auto-potvrda, limiti, isticanje, javne prijave | ✅ #56 | US-21 do US-25 |
+| Admin API za moderaciju | ✅ #57 | US-27 do US-29 |
+| Postavke i adrese uređaja, pretraga adresa | ✅ #60 | US-09 do US-11, US-18 |
+| Uparivanje po adresi i evidencija po koraku | ✅ #61 | US-13, US-17, US-18 |
+| Najava, podsjetnik i početak | ✅ #63 | US-14 do US-16 |
+| Limiti za prijave, registraciju i pretragu; env provjera, CORS, health, gašenje | ✅ #65 | US-24 |
+| Upozorenje za pokvaren scraper | ✅ #64 | US-34 |
+| Brisanje uređaja i rokovi čuvanja | ✅ #66 | US-35 |
+| Računi, objekti iz OSM-a, pretraga, rute, feedovi | ✅ #69 | US-36 do US-39 |
+| WebSocket događaj za završen službeni prekid | 📋 #11 | US-05 |
 
 ## Van opsega za v1
 
 Sljedeće se u v1 namjerno ne gradi:
 
 - Obavijesti na webu (web push i email).
-- Korisnički računi i sinhronizacija adresa između uređaja.
+- Sinhronizacija adresa između uređaja. Računi postoje na webu (US-36), ali adrese još nisu vezane za račun.
 - Gradovi izvan Kantona Sarajevo.
 - Obavijest kad se prekid završi.
 - Komentari i razgovor uz prijave.
@@ -373,5 +418,5 @@ Sljedeće se u v1 namjerno ne gradi:
 
 - **Backend i web:** deploy i env varijable (#3, #4), tačan URL za Elektrodistribuciju (#7).
 - **Mobilna:** `eas init` i API URL (#5), Google Maps ključ za Android (#6), nadogradnja Expo SDK-a (#30), EAS build (#31).
-- **Pravno:** politika privatnosti i uslovi korištenja (#36).
+- **Pravno:** pravni pregled politike privatnosti i uslova (#36); stranice su na webu (#67).
 - **Naziv:** `app.json` koristi ServisneInfo, ali zaglavlje mobilne početne još piše "KOMUNALNI INFO" (#41).
