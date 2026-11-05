@@ -8,56 +8,66 @@ interface UserLocation {
 
 interface LocationState {
   location: UserLocation | null;
-  permissionGranted: boolean;
+  // Opcija "lokacija" je uključena u postavkama uređaja
+  enabled: boolean;
   error: string | null;
 }
 
 const LocationContext = createContext<LocationState>({
   location: null,
-  permissionGranted: false,
+  enabled: false,
   error: null,
 });
 
-// Jedan GPS watcher za cijelu aplikaciju — ekrani čitaju lokaciju preko useLocation()
-export function LocationProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<LocationState>({
-    location: null,
-    permissionGranted: false,
-    error: null,
-  });
+// Traži dozvolu za lokaciju; zove se samo kad korisnik uključi opciju (KTD11)
+export async function requestLocationPermission(): Promise<boolean> {
+  const { status } = await Location.requestForegroundPermissionsAsync();
+  return status === "granted";
+}
+
+// Jedan GPS watcher za cijelu aplikaciju — ekrani čitaju lokaciju preko useLocation().
+// Dok je opcija isključena, ne traži dozvolu i ne prati lokaciju (KTD11).
+export function LocationProvider({ enabled, children }: { enabled: boolean; children: ReactNode }) {
+  const [location, setLocation] = useState<UserLocation | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    setError(null);
+    if (!enabled) {
+      setLocation(null);
+      return;
+    }
+
     let subscription: Location.LocationSubscription | null = null;
     let cancelled = false;
 
     (async () => {
       try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
+        // Samo provjera: dozvolu traži prekidač u Postavkama ili uvodu
+        const { status } = await Location.getForegroundPermissionsAsync();
         if (status !== "granted") {
-          setState((s) => ({ ...s, error: "Lokacijska dozvola odbijena. Neke funkcije neće raditi." }));
+          setError("Lokacija je uključena, ali aplikacija nema dozvolu. Dozvolite je u sistemskim podešavanjima.");
           return;
         }
-        setState((s) => ({ ...s, permissionGranted: true }));
 
-        // Get current position immediately
         const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
         if (cancelled) return;
-        setState((s) => ({ ...s, location: { lat: pos.coords.latitude, lng: pos.coords.longitude } }));
+        setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
 
-        // Subscribe to significant location changes (battery-efficient)
+        // Samo značajne promjene (štedi bateriju)
         const sub = await Location.watchPositionAsync(
           {
             accuracy: Location.Accuracy.Balanced,
-            distanceInterval: 500, // only fire when moved 500m+
-            timeInterval: 300_000,  // or every 5 min
+            distanceInterval: 500,
+            timeInterval: 300_000,
           },
-          (p) => setState((s) => ({ ...s, location: { lat: p.coords.latitude, lng: p.coords.longitude } }))
+          (p) => setLocation({ lat: p.coords.latitude, lng: p.coords.longitude })
         );
         if (cancelled) sub.remove();
         else subscription = sub;
       } catch {
         // npr. lokacijske usluge isključene na uređaju
-        setState((s) => ({ ...s, error: "Lokacija trenutno nije dostupna." }));
+        if (!cancelled) setError("Lokacija trenutno nije dostupna.");
       }
     })();
 
@@ -65,9 +75,13 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       subscription?.remove();
     };
-  }, []);
+  }, [enabled]);
 
-  return <LocationContext.Provider value={state}>{children}</LocationContext.Provider>;
+  return (
+    <LocationContext.Provider value={{ location: enabled ? location : null, enabled, error }}>
+      {children}
+    </LocationContext.Provider>
+  );
 }
 
 export function useLocation(): LocationState {

@@ -47,6 +47,13 @@ export default function TabsLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: "Postavke",
+          tabBarIcon: ({ color }) => <TabIcon emoji="⚙️" color={color} />,
+        }}
+      />
     </Tabs>
   );
 }

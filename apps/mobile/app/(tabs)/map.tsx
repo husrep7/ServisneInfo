@@ -33,7 +33,7 @@ const LEGEND: { type: Incident["type"]; label: string }[] = [
 
 export default function MapScreen() {
   const mapRef = useRef<MapView>(null);
-  const { location } = useLocation();
+  const { location, enabled: locationEnabled } = useLocation();
   const { data: incidents = [], isLoading } = useIncidents(location?.lat, location?.lng);
 
   const withPolygon = incidents.filter((i) => i.area_geojson !== null);
@@ -69,7 +69,8 @@ export default function MapScreen() {
             ? { latitude: location.lat, longitude: location.lng, latitudeDelta: 0.04, longitudeDelta: 0.04 }
             : SARAJEVO_REGION
         }
-        showsUserLocation
+        // showsUserLocation sam traži dozvolu za lokaciju, pa samo uz uključenu opciju (KTD11)
+        showsUserLocation={locationEnabled}
         showsMyLocationButton={false}
         showsCompass={false}
       >
@@ -96,16 +97,18 @@ export default function MapScreen() {
         </View>
       )}
 
-      {/* My location button */}
-      <TouchableOpacity
-        style={styles.myLocationBtn}
-        onPress={centerOnUser}
-        activeOpacity={0.8}
-        accessibilityRole="button"
-        accessibilityLabel="Centriraj mapu na moju lokaciju"
-      >
-        <Text style={styles.myLocationIcon}>📍</Text>
-      </TouchableOpacity>
+      {/* Dugme za moju lokaciju: samo kad je lokacija uključena i poznata */}
+      {location && (
+        <TouchableOpacity
+          style={styles.myLocationBtn}
+          onPress={centerOnUser}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Centriraj mapu na moju lokaciju"
+        >
+          <Text style={styles.myLocationIcon}>📍</Text>
+        </TouchableOpacity>
+      )}
 
       {/* Legend card */}
       <View style={styles.legend}>
