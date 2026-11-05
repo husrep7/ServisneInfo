@@ -103,8 +103,9 @@ describe('lista prekida i filter "Kod mene" nad PostGIS bazom', { skip: skipWith
   test('status i today filteri rade kao prije', async () => {
     await incident('Aktivan', LAT);
     await db.query(
-      `INSERT INTO incidents (type, title, status, starts_at) VALUES ('gas', 'Planiran sutra', 'scheduled', NOW() + interval '1 day'),
-                                                                     ('gas', 'Završen jučer', 'resolved', NOW() - interval '1 day')`
+      `INSERT INTO incidents (type, title, status, starts_at, ends_at)
+       VALUES ('gas', 'Planiran sutra', 'scheduled', NOW() + interval '1 day', NULL),
+              ('gas', 'Završen jučer', 'resolved', NOW() - interval '1 day', NOW() - interval '20 hours')`
     );
     assert.deepEqual(titles(await list('/incidents?status=scheduled')), ['Planiran sutra']);
     assert.deepEqual(titles(await list('/incidents?status=all&today=false')), ['Aktivan', 'Planiran sutra', 'Završen jučer']);
