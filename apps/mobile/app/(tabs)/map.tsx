@@ -13,6 +13,8 @@ import { useLocation } from "../../hooks/useLocation";
 import { useIncidents } from "../../hooks/useIncidents";
 import { Colors } from "../../constants/colors";
 import { Incident } from "../../services/api";
+import { incidentPath, polygonParts } from "../../constants/incident";
+import { router } from "expo-router";
 
 const SARAJEVO_REGION = {
   latitude: 43.8563,
@@ -20,12 +22,6 @@ const SARAJEVO_REGION = {
   latitudeDelta: 0.08,
   longitudeDelta: 0.08,
 };
-
-// Zona službene obavijesti je MultiPolygon (krug oko svake ulice): jedan Polygon po dijelu
-function polygonParts(geojson: GeoJSON.Polygon | GeoJSON.MultiPolygon) {
-  const rings = geojson.type === "Polygon" ? [geojson.coordinates[0]] : geojson.coordinates.map((p) => p[0]);
-  return rings.map((ring) => ring.map(([lng, lat]) => ({ latitude: lat, longitude: lng })));
-}
 
 const LEGEND: { type: Incident["type"]; label: string }[] = [
   { type: "water",       label: "Voda" },
@@ -86,6 +82,8 @@ export default function MapScreen() {
               fillColor={`${color}30`}
               strokeColor={color}
               strokeWidth={2}
+              tappable
+              onPress={() => router.push(incidentPath(incident.id))}
             />
           ));
         })}

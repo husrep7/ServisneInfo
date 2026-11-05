@@ -1,7 +1,17 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { AppState } from "react-native";
-import { fetchIncidents, Incident, WS_URL } from "../services/api";
+import { fetchIncident, fetchIncidents, Incident, WS_URL } from "../services/api";
+
+// Ključ počinje sa "incidents", pa ga WebSocket događaji osvježe kao i listu
+export function useIncident(id: string | undefined) {
+  return useQuery<Incident | null>({
+    queryKey: ["incidents", "detail", id],
+    queryFn: () => fetchIncident(id!),
+    enabled: !!id,
+    staleTime: 30_000,
+  });
+}
 
 export function useIncidents(lat?: number, lng?: number) {
   return useQuery<Incident[]>({
