@@ -17,6 +17,7 @@ import { useIncidents, usePublicReports } from "../../hooks/useIncidents";
 import { useAddresses } from "../../hooks/useDevice";
 import { IncidentCard } from "../../components/IncidentCard";
 import { ReportCard, ReportSheet } from "../../components/ReportCard";
+import { ReportButton } from "../../components/ReportButton";
 import { Incident, PublicReport } from "../../services/api";
 import { Colors } from "../../constants/colors";
 import { distanceMeters, REPORT_NEAR_METERS } from "../../constants/incident";
@@ -191,12 +192,13 @@ export default function HomeScreen() {
               : <EmptyState hasLocation={!!location} />
           }
           contentContainerStyle={
-            rows.length === 0 ? styles.emptyContainer : { paddingBottom: 24 }
+            rows.length === 0 ? styles.emptyContainer : { paddingBottom: 88 }
           }
           showsVerticalScrollIndicator={false}
         />
       )}
 
+      <ReportButton />
       <ReportSheet report={openReport} onClose={() => setOpenReport(null)} />
     </View>
   );
