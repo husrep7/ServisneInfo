@@ -48,3 +48,24 @@ export function polygonParts(geojson: AreaGeometry) {
 export function incidentPath(id: string) {
   return `/incident/${id}` as const;
 }
+
+// Udaljenost između dvije tačke u metrima (haversine)
+export function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const R = 6_371_000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+// Prijava je "kod mene" kad je u krugu od 500 m oko sačuvane adrese (isti krug kao za potvrdu, KTD6)
+export const REPORT_NEAR_METERS = 500;
+
+export function timeAgo(iso: string, now = Date.now()): string {
+  const min = Math.max(0, Math.round((now - new Date(iso).getTime()) / 60_000));
+  if (min < 1) return "upravo";
+  if (min < 60) return `prije ${min} min`;
+  const h = Math.floor(min / 60);
+  return `prije ${h} h`;
+}

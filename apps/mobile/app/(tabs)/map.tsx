@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -8,12 +8,14 @@ import {
   Platform,
   StatusBar,
 } from "react-native";
-import MapView, { Polygon, PROVIDER_GOOGLE } from "react-native-maps";
+import MapView, { Marker, Polygon, PROVIDER_GOOGLE } from "react-native-maps";
 import { useLocation } from "../../hooks/useLocation";
-import { useIncidents } from "../../hooks/useIncidents";
+import { useIncidents, usePublicReports } from "../../hooks/useIncidents";
+import { useAddresses } from "../../hooks/useDevice";
+import { ReportSheet } from "../../components/ReportCard";
 import { Colors } from "../../constants/colors";
-import { Incident } from "../../services/api";
-import { incidentPath, polygonParts } from "../../constants/incident";
+import { Incident, PublicReport } from "../../services/api";
+import { distanceMeters, incidentPath, polygonParts, REPORT_NEAR_METERS } from "../../constants/incident";
 import { router } from "expo-router";
 
 const SARAJEVO_REGION = {
@@ -34,9 +36,21 @@ const LEGEND: { type: Incident["type"]; label: string }[] = [
 export default function MapScreen() {
   const mapRef = useRef<MapView>(null);
   const { location, enabled: locationEnabled } = useLocation();
-  const { data: incidents = [], isLoading } = useIncidents(location?.lat, location?.lng);
+  const [nearMe, setNearMe] = useState(false);
+  const [openReport, setOpenReport] = useState<PublicReport | null>(null);
+  const { data: incidents = [], isLoading } = useIncidents(location?.lat, location?.lng, { mine: nearMe });
+  const { data: allReports = [] } = usePublicReports();
+  const { data: addresses = [] } = useAddresses();
 
   const withPolygon = incidents.filter((i) => i.area_geojson !== null);
+  // Nepotvrđene prijave su tačke, ne zone (KTD12); "Kod mene" = do 500 m od sačuvane adrese
+  const reports = useMemo(
+    () =>
+      allReports.filter((r) =>
+        r.lat !== null && r.lng !== null &&
+        (!nearMe || addresses.some((a) => distanceMeters(a, { lat: r.lat!, lng: r.lng! }) <= REPORT_NEAR_METERS))),
+    [allReports, addresses, nearMe]
+  );
 
   const centerOnUser = () => {
     if (!location || !mapRef.current) return;
@@ -55,9 +69,20 @@ export default function MapScreen() {
       {/* Signal-style map header */}
       <View style={styles.header}>
         <Text style={styles.headerLabel}>KARTA INCIDENATA</Text>
-        <Text style={styles.headerCount}>
-          {withPolygon.length} prikazano
-        </Text>
+        <View style={styles.headerRight}>
+          <Text style={styles.headerCount}>
+            {withPolygon.length} prikazano
+          </Text>
+          <TouchableOpacity
+            style={[styles.nearChip, nearMe && styles.nearChipActive]}
+            onPress={() => setNearMe((v) => !v)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: nearMe }}
+            accessibilityLabel="Kod mene: samo prekidi na mojim adresama"
+          >
+            <Text style={styles.nearChipText}>📍 Kod mene</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <MapView
@@ -88,7 +113,25 @@ export default function MapScreen() {
             />
           ));
         })}
+        {reports.map((r) => (
+          <Marker
+            key={`r:${r.id}`}
+            coordinate={{ latitude: r.lat!, longitude: r.lng! }}
+            pinColor={Colors.incident[r.type]}
+            opacity={0.7}
+            title="Nepotvrđena prijava"
+            onPress={() => setOpenReport(r)}
+          />
+        ))}
       </MapView>
+
+      {nearMe && addresses.length === 0 && (
+        <View style={styles.notice}>
+          <Text style={styles.noticeText}>Dodajte adresu u Postavkama da vidite prekide kod sebe.</Text>
+        </View>
+      )}
+
+      <ReportSheet report={openReport} onClose={() => setOpenReport(null)} />
 
       {isLoading && (
         <View style={styles.loader}>
@@ -149,6 +192,32 @@ const styles = StyleSheet.create({
   },
 
   map: { flex: 1 },
+
+  headerRight: { flexDirection: "row", alignItems: "center", gap: 10 },
+  nearChip: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.textSecondary,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  nearChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  nearChipText: { color: "#fff", fontSize: 12, fontWeight: "600" },
+  notice: {
+    position: "absolute",
+    bottom: 24,
+    left: 16,
+    right: 84,
+    backgroundColor: Colors.card,
+    borderRadius: 12,
+    padding: 12,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+  },
+  noticeText: { fontSize: 13, color: Colors.text },
 
   loader: {
     position: "absolute",
